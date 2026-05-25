@@ -156,21 +156,19 @@
     <template x-if="recientes.length > 0">
         <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
             <h3 class="text-sm text-gray-400 font-bold uppercase tracking-wider mb-4"
-                x-text="'Últimas 10 Mediciones (' + (tipo==='traccion' ? 'Traccionales' : 'Direccionales') + ')'"></h3>
+                x-text="'Últimas 10 Mediciones — ' + {traccion:'Traccionales', direccion:'Direccionales', turbos:'Turbos'}[tipo]">
+            </h3>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+
+                <!-- Tabla neumáticos (traccion / direccion) -->
+                <table x-show="tipo !== 'turbos'" class="w-full text-sm">
                     <thead>
                         <tr class="border-b-2 border-navy-700">
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
-                                Equipo</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha
-                            </th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Marca
-                            </th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
-                                Valores</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
-                                Origen</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Marca</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Valores (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Origen</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,8 +180,9 @@
                                 <td class="p-3 font-mono text-blue-400 font-bold"
                                     x-text="Object.entries(m.posiciones||{}).map(([k,v])=>k+':'+v).join(' | ')"></td>
                                 <td class="p-3">
-                                    <span
-                                        :class="m.origen==='terreno' ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-blue-900/20 text-blue-400 border-blue-800'"
+                                    <span :class="m.origen==='terreno'
+                                            ? 'bg-green-900/20 text-green-400 border-green-800'
+                                            : 'bg-blue-900/20 text-blue-400 border-blue-800'"
                                         class="px-3 py-1 rounded-full text-xs font-bold border"
                                         x-text="m.origen"></span>
                                 </td>
@@ -191,6 +190,42 @@
                         </template>
                     </tbody>
                 </table>
+
+                <!-- Tabla turbos -->
+                <table x-show="tipo === 'turbos'" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Horómetro</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold text-center">Radial (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold text-center">Axial (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Estado Visual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(m, i) in recientes" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + m.equipo_numero"></td>
+                                <td class="p-3" x-text="m.fecha"></td>
+                                <td class="p-3 font-mono text-gray-300" x-text="(m.horometro_motor || '—') + ' hrs'"></td>
+                                <td class="p-3 font-mono font-bold text-purple-400 text-center" x-text="m.juego_radial != null ? m.juego_radial.toFixed(4) : '—'"></td>
+                                <td class="p-3 font-mono font-bold text-purple-400 text-center" x-text="m.juego_axial != null ? m.juego_axial.toFixed(4) : '—'"></td>
+                                <td class="p-3">
+                                    <span :class="{
+                                            'bg-red-900/20 text-red-400 border-red-800':   m.estado_visual === 'FUGA_ACEITE' || m.estado_visual === 'ROCE_ASPAS',
+                                            'bg-yellow-900/20 text-yellow-400 border-yellow-800': m.estado_visual === 'OTRO',
+                                            'bg-green-900/20 text-green-400 border-green-800':  m.estado_visual === 'OK'
+                                        }"
+                                        class="px-3 py-1 rounded-full text-xs font-bold border"
+                                        x-text="{'OK':'OK','FUGA_ACEITE':'Fuga Aceite','ROCE_ASPAS':'Roce Álabes','OTRO':'Otro'}[m.estado_visual] || m.estado_visual">
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
             </div>
         </div>
     </template>

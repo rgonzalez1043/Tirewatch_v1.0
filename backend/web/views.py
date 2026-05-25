@@ -160,7 +160,7 @@ def reporte_proyecciones(request):
     Reporte imprimible de todas las proyecciones activas (neumáticos + turbos).
     Accesible en /reportes/ — usar Ctrl+P / Imprimir en el navegador para generar PDF.
     """
-    proy_neumaticos = (
+    proy_neumaticos = list(
         ProyeccionNeumaticos.objects
         .select_related("equipo")
         .order_by("horas_restantes")
@@ -172,10 +172,26 @@ def reporte_proyecciones(request):
     )
     config = ConfiguracionSistema.load()
 
+    # Pre-calcular stats de neumáticos en Python (los templates Django no permiten
+    # acumuladores mutables con {% with %}, lo que produce conteos incorrectos)
+    stats_neu = {"total": len(proy_neumaticos), "criticos": 0, "atencion": 0, "ok": 0}
+    for p in proy_neumaticos:
+        stats_neu[p.estado] += 1  # p.estado retorna 'critico' | 'atencion' | 'ok'
+
+    # Stats de turbos vía ORM (son simples porque el estado es un campo de BD)
+    stats_turb = proy_turbos.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+
     context = {
         "proy_neumaticos": proy_neumaticos,
         "proy_turbos": proy_turbos,
         "config": config,
         "usuario": request.user,
+        "stats_neu": stats_neu,
+        "stats_turb": stats_turb,
     }
     return render(request, "web/reporte.html", context)

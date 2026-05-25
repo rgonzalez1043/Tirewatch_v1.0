@@ -4,6 +4,14 @@
 {% block content %}
 <div x-data="dashboard()" x-init="cargar()" class="space-y-4">
 
+    <!-- Toast global -->
+    <div x-show="toast" x-cloak
+        :class="toast?.type === 'error'
+            ? 'bg-red-900 text-red-300 border-red-800'
+            : 'bg-green-900 text-green-300 border-green-800'"
+        class="fixed bottom-6 right-6 px-5 py-3 rounded-lg text-sm font-semibold shadow-lg border z-50"
+        x-text="toast?.msg"></div>
+
     <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-navy-800 border border-navy-700 border-l-blue-500 border-l-[3px] rounded-lg p-4">
@@ -188,25 +196,42 @@
 <script>
     function dashboard() {
         return {
-            data: null, tipo: 'traccion', loading: true, analizando: false,
+            data: null, tipo: 'traccion', loading: true, analizando: false, toast: null,
             token() { return sessionStorage.getItem('tw_token'); },
             headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
+            showToast(msg, type = 'success') {
+                this.toast = { msg, type };
+                setTimeout(() => this.toast = null, 3500);
+            },
             async cargar() {
                 this.loading = true;
                 try {
                     const res = await fetch('/api/neumaticos/dashboard/?tipo=' + this.tipo, { headers: this.headers() });
                     if (res.status === 401) { window.location.href = '/login/'; return; }
                     this.data = await res.json();
-                } catch (e) { console.error(e); }
+                } catch (e) {
+                    console.error(e);
+                    this.showToast('Error al cargar datos del servidor', 'error');
+                }
                 this.loading = false;
             },
             async recalcular() {
                 this.analizando = true;
                 try {
-                    await fetch('/api/neumaticos/analisis/ejecutar/', { method: 'POST', headers: this.headers(), body: JSON.stringify({ tipo: this.tipo }) });
+                    const res = await fetch('/api/neumaticos/analisis/ejecutar/', {
+                        method: 'POST', headers: this.headers(),
+                        body: JSON.stringify({ tipo: this.tipo })
+                    });
+                    if (!res.ok) throw new Error('Error en el servidor (' + res.status + ')');
+                    const data = await res.json();
+                    const n = data.detalle?.proyecciones_generadas ?? '—';
                     await this.cargar();
-                } catch (e) { }
-                this.analizando = false;
+                    this.showToast(`✓ Análisis completado — ${n} proyecciones generadas`);
+                } catch (e) {
+                    this.showToast('✗ ' + (e.message || 'Error al recalcular'), 'error');
+                } finally {
+                    this.analizando = false;
+                }
             }
         }
     }

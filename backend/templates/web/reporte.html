@@ -183,27 +183,24 @@
   <div class="section">
     <div class="section-title">🛞 Proyecciones — Neumáticos</div>
 
-    {% with total=proy_neumaticos.count %}
-    {% with criticos=proy_neumaticos|dictsort:"horas_restantes" %}
-
     <div class="stats-row">
       <div class="stat-box stat-total">
-        <div class="val">{{ proy_neumaticos.count }}</div>
+        <div class="val">{{ stats_neu.total }}</div>
         <div class="lbl">Total</div>
       </div>
       <div class="stat-box stat-critico">
-        <div class="val">
-          {% with cnt=0 %}
-          {% for p in proy_neumaticos %}{% if p.estado == "critico" %}{% with cnt=cnt|add:1 %}{% endwith %}{% endif %}{% endfor %}
-          {{ proy_neumaticos|length }}
-          {% endwith %}
-        </div>
+        <div class="val">{{ stats_neu.criticos }}</div>
         <div class="lbl">Críticos</div>
       </div>
+      <div class="stat-box stat-atencion">
+        <div class="val">{{ stats_neu.atencion }}</div>
+        <div class="lbl">Atención</div>
+      </div>
+      <div class="stat-box stat-ok">
+        <div class="val">{{ stats_neu.ok }}</div>
+        <div class="lbl">OK</div>
+      </div>
     </div>
-
-    {% endwith %}
-    {% endwith %}
 
     {% if proy_neumaticos %}
     <table>
@@ -254,6 +251,25 @@
   <!-- ═══════════════════════════════════════════════ -->
   <div class="section">
     <div class="section-title turbos">⚙️ Proyecciones — Turbocompresores</div>
+
+    <div class="stats-row">
+      <div class="stat-box stat-total">
+        <div class="val">{{ stats_turb.total }}</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-box stat-critico">
+        <div class="val">{{ stats_turb.criticos }}</div>
+        <div class="lbl">Críticos</div>
+      </div>
+      <div class="stat-box stat-atencion">
+        <div class="val">{{ stats_turb.atencion }}</div>
+        <div class="lbl">Atención</div>
+      </div>
+      <div class="stat-box stat-ok">
+        <div class="val">{{ stats_turb.ok }}</div>
+        <div class="lbl">OK</div>
+      </div>
+    </div>
 
     {% if proy_turbos %}
     <table>
