@@ -10,6 +10,7 @@ from django.db.models import Count, Q
 
 from core.models import ConfiguracionSistema, Usuario
 from turbos.models import ProyeccionTurbo
+from neumaticos.models import Proyeccion as ProyeccionNeumaticos
 from .forms import ConfiguracionSistemaForm, UsuarioCreationForm, UsuarioEditForm
 
 
@@ -151,3 +152,30 @@ def usuario_editar(request, user_id):
         form = UsuarioEditForm(instance=usuario)
 
     return render(request, "web/usuario_form.html", {"form": form, "titulo": f"Editar Usuario: {usuario.username}"})
+
+
+@login_required(login_url="/login/")
+def reporte_proyecciones(request):
+    """
+    Reporte imprimible de todas las proyecciones activas (neumáticos + turbos).
+    Accesible en /reportes/ — usar Ctrl+P / Imprimir en el navegador para generar PDF.
+    """
+    proy_neumaticos = (
+        ProyeccionNeumaticos.objects
+        .select_related("equipo")
+        .order_by("horas_restantes")
+    )
+    proy_turbos = (
+        ProyeccionTurbo.objects
+        .select_related("equipo")
+        .order_by("horas_motor_restantes")
+    )
+    config = ConfiguracionSistema.load()
+
+    context = {
+        "proy_neumaticos": proy_neumaticos,
+        "proy_turbos": proy_turbos,
+        "config": config,
+        "usuario": request.user,
+    }
+    return render(request, "web/reporte.html", context)

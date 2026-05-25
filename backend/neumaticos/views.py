@@ -1,14 +1,12 @@
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
-from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Medicion, TasaDesgaste, Proyeccion, Neumatico
+from .models import Medicion, TasaDesgaste, Proyeccion
 from .serializers import (
     MedicionSerializer, MedicionCreateSerializer,
-    TasaDesgasteSerializer, ProyeccionSerializer, NeumaticSerializer,
+    TasaDesgasteSerializer, ProyeccionSerializer,
 )
 from .services import MotorAnalisis
 from .importador import importar_excel
@@ -25,7 +23,7 @@ class MedicionViewSet(viewsets.ModelViewSet):
     POST /api/neumaticos/mediciones/             → crear (terreno)
     """
     queryset = Medicion.objects.select_related("equipo", "registrado_por").all()
-    filterset_fields = ["equipo", "tipo", "marca_nombre", "origen", "fecha"]
+    filterset_fields = ["equipo", "equipo__numero", "tipo", "marca_nombre", "origen", "fecha"]
     search_fields = ["equipo__numero", "marca_nombre"]
     ordering_fields = ["fecha", "equipo", "created_at"]
 

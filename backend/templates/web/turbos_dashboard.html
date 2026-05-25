@@ -54,12 +54,12 @@
 
         <!-- Tabla de Alertas -->
         <div class="xl:col-span-2 bg-navy-800 border border-navy-700 rounded-lg p-6">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h2 class="text-base font-bold text-gray-200 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                     Estado de la Flota (Prioridad Alta)
                 </h2>
-                <div class="flex gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <button @click="filtro='TODO'" :class="filtro==='TODO' ? 'bg-navy-700 text-white':'text-gray-400'"
                         class="px-3 py-1 rounded text-xs font-bold transition-all">Todos</button>
                     <button @click="filtro='CRITICO'"
@@ -68,6 +68,23 @@
                     <button @click="filtro='ATENCION'"
                         :class="filtro==='ATENCION' ? 'bg-yellow-900/50 text-yellow-400':'text-gray-400'"
                         class="px-3 py-1 rounded text-xs font-bold transition-all">Atención</button>
+
+                    <div class="w-px h-5 bg-navy-600 mx-1"></div>
+
+                    <!-- Recalcular -->
+                    <button @click="recalcular()" :disabled="analizando"
+                        class="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-700 to-purple-800 text-white rounded text-xs font-bold hover:from-purple-600 disabled:opacity-50 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2" :class="analizando ? 'animate-spin' : ''">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span x-text="analizando ? 'Analizando...' : 'Recalcular'"></span>
+                    </button>
+
+                    <!-- Toast inline -->
+                    <span x-show="toast" x-cloak x-text="toast"
+                        class="text-xs text-green-400 font-semibold animate-pulse"></span>
                 </div>
             </div>
 
@@ -208,6 +225,26 @@
     function turbosDashboard() {
         return {
             filtro: 'TODO',
+            analizando: false,
+            toast: '',
+            token() { return sessionStorage.getItem('tw_token'); },
+            headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
+            async recalcular() {
+                this.analizando = true;
+                this.toast = '';
+                try {
+                    const res = await fetch('/api/turbos/analizar/', { method: 'POST', headers: this.headers() });
+                    if (!res.ok) throw new Error('Error en servidor');
+                    const data = await res.json();
+                    this.toast = `✓ ${data.proyecciones_actualizadas} proyecciones actualizadas`;
+                    // Recargar la página para mostrar los datos nuevos
+                    setTimeout(() => window.location.reload(), 1200);
+                } catch (e) {
+                    this.toast = '✗ Error al recalcular';
+                } finally {
+                    this.analizando = false;
+                }
+            }
         }
     }
 </script>

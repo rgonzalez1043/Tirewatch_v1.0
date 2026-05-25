@@ -14,6 +14,9 @@ urlpatterns = [
     path("modulos/", views.modulos, name="modulos"),
     path("ayuda/", views.ayuda, name="ayuda"),
     
+    # Reportes
+    path("reportes/", views.reporte_proyecciones, name="reporte_proyecciones"),
+
     # Usuarios (Admin)
     path("usuarios/", views.usuarios_list, name="usuarios_list"),
     path("usuarios/nuevo/", views.usuario_crear, name="usuario_crear"),

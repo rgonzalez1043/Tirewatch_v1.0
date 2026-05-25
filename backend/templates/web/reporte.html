@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reporte de Proyecciones — TireWatch STI</title>
+  <style>
+    /* ── Reset base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 11px;
+      color: #1a202c;
+      background: #fff;
+      padding: 20px 28px;
+    }
+
+    /* ── Cabecera ── */
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #2d3748;
+      padding-bottom: 10px;
+      margin-bottom: 18px;
+    }
+    .report-header h1 { font-size: 18px; font-weight: 800; color: #1a365d; }
+    .report-header .sub { font-size: 10px; color: #718096; margin-top: 2px; }
+    .report-meta { text-align: right; font-size: 10px; color: #718096; }
+    .report-meta strong { color: #1a202c; }
+
+    /* ── Secciones ── */
+    .section { margin-bottom: 22px; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #2d3748;
+      border-left: 4px solid #3182ce;
+      padding-left: 8px;
+      margin-bottom: 8px;
+    }
+    .section-title.turbos { border-left-color: #805ad5; }
+    .section-title.frenos { border-left-color: #e53e3e; }
+
+    /* ── Tablas ── */
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: #2d3748; color: #fff; }
+    thead th {
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tbody tr { border-bottom: 1px solid #e2e8f0; }
+    tbody tr:nth-child(even) { background: #f7fafc; }
+    tbody td { padding: 5px 8px; }
+
+    /* ── Badges de estado ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      font-size: 9px;
+      font-weight: 700;
+      border: 1px solid;
+    }
+    .badge-critico  { background: #fff5f5; color: #c53030; border-color: #feb2b2; }
+    .badge-atencion { background: #fffaf0; color: #c05621; border-color: #fbd38d; }
+    .badge-ok       { background: #f0fff4; color: #276749; border-color: #9ae6b4; }
+
+    .mono { font-family: 'Consolas', monospace; }
+
+    /* ── Stats summary ── */
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .stat-box {
+      flex: 1;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    .stat-box .val { font-size: 20px; font-weight: 800; }
+    .stat-box .lbl { font-size: 9px; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-critico .val  { color: #c53030; }
+    .stat-atencion .val { color: #c05621; }
+    .stat-ok .val       { color: #276749; }
+    .stat-total .val    { color: #1a365d; }
+
+    /* ── Botones de pantalla (no imprimibles) ── */
+    .screen-only {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #2b6cb0;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: #edf2f7;
+      color: #2d3748;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* ── Pie de página ── */
+    .footer {
+      margin-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      font-size: 9px;
+      color: #a0aec0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ── MEDIA PRINT ── */
+    @media print {
+      body { padding: 10px 14px; font-size: 10px; }
+      .screen-only { display: none !important; }
+      thead tr { background: #2d3748 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      tbody tr:nth-child(even) { background: #f7fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .section { page-break-inside: avoid; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controles (solo pantalla) -->
+  <div class="screen-only">
+    <button class="btn-print" onclick="window.print()">
+      🖨️ Imprimir / Guardar como PDF
+    </button>
+    <a href="/" class="btn-back">← Volver al Dashboard</a>
+  </div>
+
+  <!-- Cabecera del reporte -->
+  <div class="report-header">
+    <div>
+      <h1>🛞 TireWatch — Reporte de Proyecciones</h1>
+      <div class="sub">STI / Hanseatic Global Terminals · Control Predictivo de Componentes</div>
+    </div>
+    <div class="report-meta">
+      <div>Generado: <strong>{% now "d/m/Y H:i" %}</strong></div>
+      <div>Por: <strong>{{ usuario.get_full_name|default:usuario.username }}</strong></div>
+      <div>Rol: <strong>{{ usuario.rol }}</strong></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECCIÓN NEUMÁTICOS                              -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title">🛞 Proyecciones — Neumáticos</div>
+
+    {% with total=proy_neumaticos.count %}
+    {% with criticos=proy_neumaticos|dictsort:"horas_restantes" %}
+
+    <div class="stats-row">
+      <div class="stat-box stat-total">
+        <div class="val">{{ proy_neumaticos.count }}</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-box stat-critico">
+        <div class="val">
+          {% with cnt=0 %}
+          {% for p in proy_neumaticos %}{% if p.estado == "critico" %}{% with cnt=cnt|add:1 %}{% endwith %}{% endif %}{% endfor %}
+          {{ proy_neumaticos|length }}
+          {% endwith %}
+        </div>
+        <div class="lbl">Críticos</div>
+      </div>
+    </div>
+
+    {% endwith %}
+    {% endwith %}
+
+    {% if proy_neumaticos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Tipo</th>
+          <th>Marca</th>
+          <th>Pos. Crítica</th>
+          <th>Valor Actual</th>
+          <th>Hrs Restantes</th>
+          <th>Fecha Cambio Est.</th>
+          <th>Última Medición</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proy_neumaticos %}
+        <tr>
+          <td class="mono" style="font-weight:700;">GPCO-{{ p.equipo.numero }}</td>
+          <td>{{ p.get_tipo_display }}</td>
+          <td>{{ p.marca_nombre }}</td>
+          <td class="mono" style="font-weight:700; color:#2b6cb0;">{{ p.posicion_critica }}</td>
+          <td class="mono">{{ p.valor_actual_mm|floatformat:1 }} mm</td>
+          <td class="mono" style="font-weight:700;">{{ p.horas_restantes|floatformat:0 }} h</td>
+          <td>{{ p.fecha_cambio_estimada }}</td>
+          <td>{{ p.fecha_ultima_medicion }}</td>
+          <td>
+            {% if p.estado == "critico" %}
+              <span class="badge badge-critico">CRÍTICO</span>
+            {% elif p.estado == "atencion" %}
+              <span class="badge badge-atencion">ATENCIÓN</span>
+            {% else %}
+              <span class="badge badge-ok">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#718096; font-style:italic; padding:12px 0;">Sin proyecciones. Importe datos y ejecute el análisis.</p>
+    {% endif %}
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECCIÓN TURBOS                                 -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title turbos">⚙️ Proyecciones — Turbocompresores</div>
+
+    {% if proy_turbos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Radial Actual</th>
+          <th>Axial Actual</th>
+          <th>Tasa Radial /1kh</th>
+          <th>Tasa Axial /1kh</th>
+          <th>Hrs Restantes</th>
+          <th>Lím. Radial</th>
+          <th>Lím. Axial</th>
+          <th>Última Med.</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proy_turbos %}
+        <tr>
+          <td class="mono" style="font-weight:700;">GPCO-{{ p.equipo.numero }}</td>
+          <td class="mono">{{ p.juego_radial_actual|floatformat:3|default:"—" }} mm</td>
+          <td class="mono">{{ p.juego_axial_actual|floatformat:3|default:"—" }} mm</td>
+          <td class="mono">+{{ p.tasa_radial_1000h|floatformat:3 }} mm</td>
+          <td class="mono">+{{ p.tasa_axial_1000h|floatformat:3 }} mm</td>
+          <td class="mono" style="font-weight:700;">
+            {% if p.horas_motor_restantes > 50000 %}Estable{% else %}{{ p.horas_motor_restantes|floatformat:0 }} h{% endif %}
+          </td>
+          <td class="mono">{{ config.limite_turbo_radial }} mm</td>
+          <td class="mono">{{ config.limite_turbo_axial }} mm</td>
+          <td>{{ p.ultima_medicion_fecha|default:"—" }}</td>
+          <td>
+            {% if p.estado == "CRITICO" %}
+              <span class="badge badge-critico">CRÍTICO</span>
+            {% elif p.estado == "ATENCION" %}
+              <span class="badge badge-atencion">ATENCIÓN</span>
+            {% else %}
+              <span class="badge badge-ok">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#718096; font-style:italic; padding:12px 0;">Sin proyecciones de turbos. Ingrese mediciones en Terreno.</p>
+    {% endif %}
+  </div>
+
+  <!-- Pie de página -->
+  <div class="footer">
+    <span>TireWatch v1.0 · STI / Hanseatic Global Terminals</span>
+    <span>Límite cambio neumático: {{ config.limite_cambio_neumatico_mm }} mm · Límite turbo radial: {{ config.limite_turbo_radial }} mm · axial: {{ config.limite_turbo_axial }} mm</span>
+  </div>
+
+</body>
+</html>

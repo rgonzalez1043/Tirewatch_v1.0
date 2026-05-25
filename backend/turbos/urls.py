@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import MedicionTurboViewSet, ProyeccionTurboViewSet
+from .views import MedicionTurboViewSet, ProyeccionTurboViewSet, EjecutarAnalisisTurbosView
 
 app_name = "turbos"
 
@@ -10,4 +10,5 @@ router.register(r"proyecciones", ProyeccionTurboViewSet, basename="proyeccion_tu
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("analizar/", EjecutarAnalisisTurbosView.as_view(), name="analizar_turbos"),
 ]
