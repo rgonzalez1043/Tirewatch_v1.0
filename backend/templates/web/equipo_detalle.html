@@ -1,0 +1,204 @@
+{% extends "web/base.html" %}
+{% block title %}Equipo GPCO-{{ numero }}{% endblock %}
+
+{% block content %}
+<div class="space-y-4" x-data="equipoDetalle({{ numero }})" x-init="cargar()">
+
+    <a href="/" class="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors w-fit">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Volver al Dashboard
+    </a>
+
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-6">
+        <div class="flex items-center justify-between flex-wrap gap-3 mb-6">
+            <div>
+                <h2 class="text-xl font-extrabold text-gray-100">Equipo GPCO-{{ numero }}</h2>
+                <p class="text-xs text-gray-500 mt-1"
+                    x-text="tipo !== 'turbos' ? (mediciones[0]?.marca_nombre || '') : 'Historial de Turbocompresor'">
+                </p>
+            </div>
+            <div class="flex bg-navy-950 rounded-md p-0.5">
+                <button @click="tipo='traccion'; cargar()"
+                    :class="tipo==='traccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500'"
+                    class="px-3 py-1.5 rounded text-xs font-medium transition-all">Traccionales</button>
+                <button @click="tipo='direccion'; cargar()"
+                    :class="tipo==='direccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500'"
+                    class="px-3 py-1.5 rounded text-xs font-medium transition-all">Direccionales</button>
+                <button @click="tipo='turbos'; cargar()"
+                    :class="tipo==='turbos' ? 'bg-navy-700 text-purple-400 font-bold' : 'text-gray-500'"
+                    class="px-3 py-1.5 rounded text-xs font-medium transition-all">Turbos</button>
+            </div>
+        </div>
+
+        <!-- Gráfico -->
+        <div x-show="loading" class="h-64 flex items-center justify-center text-blue-400 animate-pulse">Cargando
+            gráfico...</div>
+        <div x-show="!loading && !hayDatos" class="h-64 flex items-center justify-center text-gray-600">Sin datos
+            suficientes para graficar</div>
+        <div x-show="!loading && hayDatos" class="bg-navy-900 rounded-lg p-4 relative">
+            <canvas id="graficoEquipo" height="120"></canvas>
+        </div>
+    </div>
+
+    <!-- Historial -->
+    <template x-if="mediciones.length > 0">
+        <div class="bg-navy-800 border border-navy-700 rounded-lg p-6">
+            <h3 class="text-sm text-gray-400 font-bold uppercase tracking-wider mb-4">Historial de Mediciones</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha
+                            </th>
+
+                            <template x-if="tipo !== 'turbos'">
+                                <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                    Marca</th>
+                            </template>
+                            <template x-if="tipo === 'turbos'">
+                                <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                    Horómetro</th>
+                            </template>
+
+                            <template x-for="p in posiciones" :key="p">
+                                <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold"
+                                    x-text="p"></th>
+                            </template>
+
+                            <template x-if="tipo === 'turbos'">
+                                <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                    Estado Visual</th>
+                            </template>
+
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Registrado Por</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(m, i) in mediciones" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3" x-text="m.fecha"></td>
+
+                                <template x-if="tipo !== 'turbos'">
+                                    <td class="p-3 font-semibold text-gray-200" x-text="m.marca_nombre"></td>
+                                </template>
+                                <template x-if="tipo === 'turbos'">
+                                    <td class="p-3 font-semibold text-gray-200" x-text="m.horometro_motor + ' hrs'">
+                                    </td>
+                                </template>
+
+                                <template x-if="tipo !== 'turbos'">
+                                    <template x-for="p in posiciones" :key="p">
+                                        <td class="p-3 font-mono text-blue-400 font-bold"
+                                            x-text="m.posiciones?.[p] != null ? m.posiciones[p].toFixed(1) : '—'"></td>
+                                    </template>
+                                </template>
+
+                                <template x-if="tipo === 'turbos'">
+                                    <template x-for="p in ['Radial', 'Axial']" :key="p">
+                                        <td class="p-3 font-mono text-purple-400 font-bold"
+                                            x-text="p === 'Radial' ? m.juego_radial : m.juego_axial"></td>
+                                    </template>
+                                </template>
+
+                                <template x-if="tipo === 'turbos'">
+                                    <td class="p-3">
+                                        <span class="text-xs"
+                                            :class="m.estado_visual === 'OK' ? 'text-green-500' : 'text-red-400 font-bold'"
+                                            x-text="m.estado_visual"></span>
+                                    </td>
+                                </template>
+
+                                <td class="p-3 text-xs text-gray-500"
+                                    x-text="m.registrado_por_nombre || m.origen || 'Sistema'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+</div>
+
+<script>
+    function equipoDetalle(numero) {
+        const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+        let chart = null;
+        return {
+            numero, tipo: 'traccion', grafico: null, mediciones: [], loading: true, hayDatos: false,
+            get posiciones() {
+                if (this.tipo === 'traccion') return ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'];
+                if (this.tipo === 'direccion') return ['D1', 'D2'];
+                return ['Radial', 'Axial'];
+            },
+            token() { return sessionStorage.getItem('tw_token'); },
+            headers() { return { 'Authorization': 'Token ' + this.token() }; },
+            async cargar() {
+                this.loading = true; this.hayDatos = false;
+                if (chart) { chart.destroy(); chart = null; }
+                try {
+                    let urlGrafico = `/api/neumaticos/grafico/${this.numero}/?tipo=${this.tipo}`;
+                    let urlMediciones = `/api/neumaticos/mediciones/?equipo__numero=${this.numero}&tipo=${this.tipo}&ordering=-fecha&page_size=100`;
+
+                    if (this.tipo === 'turbos') {
+                        urlGrafico = `/api/turbos/proyecciones/grafico/${this.numero}/`;
+                        urlMediciones = `/api/turbos/mediciones/?equipo__numero=${this.numero}&ordering=-fecha&page_size=100`;
+                    }
+
+                    const [g, m] = await Promise.all([
+                        fetch(urlGrafico, { headers: this.headers() }).then(r => r.json()),
+                        fetch(urlMediciones, { headers: this.headers() }).then(r => r.json()),
+                    ]);
+                    this.grafico = g;
+                    this.mediciones = m.results || [];
+                    if (g.series && g.series.length > 0) {
+                        this.hayDatos = true;
+                        await this.$nextTick();
+                        this.renderChart(g);
+                    }
+                } catch (e) { console.error(e); }
+                this.loading = false;
+            },
+            renderChart(g) {
+                const labels = g.series.map(s => this.tipo === 'turbos' ? `${s.horometro}h (${s.fecha.substring(5, 10)})` : s.fecha.substring(0, 10));
+                const pos = this.posiciones;
+
+                const datasets = pos.map((p, i) => {
+                    let color = COLORS[i];
+                    if (this.tipo === 'turbos') color = i === 0 ? '#a855f7' : '#ec4899'; // Morado y Rosa
+
+                    return {
+                        label: p,
+                        data: g.series.map(s => s.valores?.[p] != null ? Math.round(s.valores[p] * 100) / 100 : null),
+                        borderColor: color, backgroundColor: color + '33',
+                        borderWidth: 2, pointRadius: 3, tension: 0.1, spanGaps: true,
+                    };
+                });
+
+                const ctx = document.getElementById('graficoEquipo');
+                if (!ctx) return;
+
+                let scaleY = { ticks: { color: '#5b6b7d', font: { size: 10 } }, grid: { color: '#1e2d42' }, suggestedMin: 0 };
+
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { labels: { color: '#9ca3af', font: { size: 10 } } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#5b6b7d', font: { size: 10 } }, grid: { color: '#1e2d42' } },
+                            y: scaleY
+                        }
+                    }
+                });
+            }
+        }
+    }
+</script>
+{% endblock %}

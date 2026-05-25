@@ -1,0 +1,36 @@
+﻿{% extends "web/base.html" %}
+{% block title %}Modulos{% endblock %}
+{% block content %}
+<div class="w-full max-w-7xl mx-auto space-y-6">
+  <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
+    <h2 class="text-base font-bold text-gray-300 uppercase tracking-wider mb-6">Modulos del Sistema</h2>
+    <div class="space-y-4">
+      {% if modulos_activos %}
+      <h3 class="text-xs font-bold text-green-500 uppercase tracking-wider mb-2">Modulos Activos</h3>
+      {% for m in modulos_activos %}
+      <a href="{{ m.url }}" class="block p-5 bg-navy-900 border border-green-800/40 rounded-lg flex items-center justify-between hover:border-green-600 transition-colors">
+        <div>
+          <div class="text-base font-bold text-gray-200 mb-1">{{ m.icono }} {{ m.titulo }}</div>
+          <div class="text-sm text-gray-500">{{ m.descripcion }}</div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-900/30 text-green-400 border border-green-800">Activo</span>
+      </a>
+      {% endfor %}
+      {% endif %}
+      {% if modulos_futuros %}
+      <h3 class="text-xs font-bold text-gray-600 uppercase tracking-wider mt-6 mb-2">Proximamente</h3>
+      {% for m in modulos_futuros %}
+      <div class="p-5 bg-navy-900 border border-navy-700 rounded-lg flex items-center justify-between opacity-50">
+        <div>
+          <div class="text-base font-bold text-gray-400 mb-1">{{ m.icono }} {{ m.titulo }}</div>
+          <div class="text-sm text-gray-600">{{ m.descripcion }}</div>
+        </div>
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-navy-800 text-gray-600 border border-navy-600">Proximo</span>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </div>
+    <p class="text-xs text-gray-600 mt-6 text-center">TireWatch v1.0</p>
+  </div>
+</div>
+{% endblock %}

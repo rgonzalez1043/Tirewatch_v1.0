@@ -1,0 +1,214 @@
+{% extends "web/base.html" %}
+{% block title %}Dashboard Turbos{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6" x-data="turbosDashboard()">
+
+    <!-- Pestañas de Navegación de Dashboards -->
+    <div class="flex items-center gap-2 mb-6 border-b border-navy-700 pb-2">
+        <a href="{% url 'web:dashboard' %}"
+            class="px-4 py-2 text-sm font-semibold text-gray-400 hover:text-gray-200 transition-colors">
+            🛞 Neumáticos
+        </a>
+        <a href="{% url 'web:turbos_dashboard' %}"
+            class="px-4 py-2 text-sm font-bold text-blue-400 border-b-2 border-blue-400">
+            ⚙️ Turbocompresores
+        </a>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Equipos Monitoreados -->
+        <div class="bg-navy-800 border border-navy-700 rounded-lg p-5 flex flex-col justify-center">
+            <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Equipos Monitoreados</div>
+            <div class="text-3xl font-extrabold text-white flex items-center gap-2">
+                {{ stats.total|default:"0" }}
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+        </div>
+        <!-- Turbos en Crítico -->
+        <div
+            class="bg-gradient-to-br from-red-900/40 to-navy-800 border border-red-800/50 rounded-lg p-5 flex flex-col justify-center">
+            <div class="text-xs text-red-300 font-bold uppercase tracking-wider mb-1">Crítico (Falla inminente)</div>
+            <div class="text-3xl font-extrabold text-red-400">{{ stats.criticos|default:"0" }}</div>
+        </div>
+        <!-- Turbos en Atención -->
+        <div
+            class="bg-gradient-to-br from-yellow-900/30 to-navy-800 border border-yellow-800/40 rounded-lg p-5 flex flex-col justify-center">
+            <div class="text-xs text-yellow-300 font-bold uppercase tracking-wider mb-1">En Atención</div>
+            <div class="text-3xl font-extrabold text-yellow-500">{{ stats.atencion|default:"0" }}</div>
+        </div>
+        <!-- Turbos Saludables -->
+        <div
+            class="bg-gradient-to-br from-green-900/20 to-navy-800 border border-green-800/30 rounded-lg p-5 flex flex-col justify-center">
+            <div class="text-xs text-green-400 font-bold uppercase tracking-wider mb-1">Turbos Saludables</div>
+            <div class="text-3xl font-extrabold text-green-500">{{ stats.ok|default:"0" }}</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+        <!-- Tabla de Alertas -->
+        <div class="xl:col-span-2 bg-navy-800 border border-navy-700 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-base font-bold text-gray-200 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    Estado de la Flota (Prioridad Alta)
+                </h2>
+                <div class="flex gap-2">
+                    <button @click="filtro='TODO'" :class="filtro==='TODO' ? 'bg-navy-700 text-white':'text-gray-400'"
+                        class="px-3 py-1 rounded text-xs font-bold transition-all">Todos</button>
+                    <button @click="filtro='CRITICO'"
+                        :class="filtro==='CRITICO' ? 'bg-red-900/50 text-red-400':'text-gray-400'"
+                        class="px-3 py-1 rounded text-xs font-bold transition-all">Críticos</button>
+                    <button @click="filtro='ATENCION'"
+                        :class="filtro==='ATENCION' ? 'bg-yellow-900/50 text-yellow-400':'text-gray-400'"
+                        class="px-3 py-1 rounded text-xs font-bold transition-all">Atención</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-navy-900/50">
+                        <tr>
+                            <th class="px-4 py-3 font-semibold rounded-tl-lg">Equipo</th>
+                            <th class="px-4 py-3 font-semibold text-center">Radial (mm)</th>
+                            <th class="px-4 py-3 font-semibold text-center">Axial (mm)</th>
+                            <th class="px-4 py-3 font-semibold text-center">Horas Restantes</th>
+                            <th class="px-4 py-3 font-semibold rounded-tr-lg">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proyecciones %}
+                        <tr class="border-b border-navy-700/50 hover:bg-navy-700 transition-colors"
+                            x-show="filtro === 'TODO' || filtro === '{{ p.estado }}'">
+                            <td class="px-4 py-4">
+                                <a href="{% url 'web:equipo_detalle' p.equipo.numero %}"
+                                    class="flex items-center gap-3 group">
+                                    <div
+                                        class="w-8 h-8 rounded bg-navy-900 flex items-center justify-center font-bold text-blue-400 border border-navy-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                        {{ p.equipo.numero }}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-gray-200">GPCO-{{ p.equipo.numero }}</div>
+                                        <div class="text-[10px] text-gray-500">Horómetro: {{
+                                            p.ultima_medicion_horometro|default:"-" }} hrs</div>
+                                    </div>
+                                </a>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    class="font-mono font-bold {% if p.juego_radial_actual >= config.limite_turbo_radial %}text-red-400{% elif p.juego_radial_actual >= limite_rad_atencion %}text-yellow-400{% else %}text-gray-300{% endif %}">
+                                    {{ p.juego_radial_actual|default:"-" }}
+                                </span>
+                                <div class="text-[10px] text-gray-500 mt-1" title="Crecimiento por 1000h">+{{
+                                    p.tasa_radial_1000h|floatformat:2 }}mm /1k h</div>
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    class="font-mono font-bold {% if p.juego_axial_actual >= config.limite_turbo_axial %}text-red-400{% elif p.juego_axial_actual >= limite_ax_atencion %}text-yellow-400{% else %}text-gray-300{% endif %}">
+                                    {{ p.juego_axial_actual|default:"-" }}
+                                </span>
+                                <div class="text-[10px] text-gray-500 mt-1" title="Crecimiento por 1000h">+{{
+                                    p.tasa_axial_1000h|floatformat:2 }}mm /1k h</div>
+                            </td>
+                            <td class="px-4 py-4 text-center font-mono">
+                                {% if p.horas_motor_restantes > 50000 %}
+                                <span class="text-green-500 text-xs">Estable</span>
+                                {% else %}
+                                <span
+                                    class="{% if p.horas_motor_restantes <= 0 %}text-red-500 font-bold{% elif p.horas_motor_restantes < 500 %}text-yellow-500 font-bold{% else %}text-gray-300{% endif %}">
+                                    {{ p.horas_motor_restantes|floatformat:0 }} hrs
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                {% if p.estado == 'CRITICO' %}
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-red-900/30 text-red-400 border border-red-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> CRITICO
+                                </span>
+                                {% elif p.estado == 'ATENCION' %}
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-yellow-900/30 text-yellow-400 border border-yellow-800">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> ATENCIÓN
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-green-900/20 text-green-500 border border-green-800/50">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> OK
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500 text-sm">
+                                Aún no hay datos predictivos de turbos en el sistema. Ingrese mediciones en Terreno.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel Lateral Informativo -->
+        <div class="space-y-6">
+            <div class="bg-navy-800 border border-navy-700 rounded-lg p-6">
+                <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider mb-4 border-b border-navy-700 pb-2">
+                    Límites de Fabricante</h3>
+                <ul class="space-y-4 text-sm text-gray-400">
+                    <li class="flex justify-between items-center p-3 bg-navy-900 rounded border border-navy-700">
+                        <span>Juego Radial Máximo</span>
+                        <span class="font-mono text-purple-400 font-bold">{{ config.limite_turbo_radial }} mm</span>
+                    </li>
+                    <li class="flex justify-between items-center p-3 bg-navy-900 rounded border border-navy-700">
+                        <span>Juego Axial Máximo</span>
+                        <span class="font-mono text-purple-400 font-bold">{{ config.limite_turbo_axial }} mm</span>
+                    </li>
+                </ul>
+                <div
+                    class="mt-4 p-3 bg-blue-900/20 text-blue-300 text-xs rounded border border-blue-900 leading-relaxed">
+                    <strong>¿Cómo funciona la proyección?</strong><br>
+                    TireWatch compara las dos últimas mediciones tomadas al turbo contra el horómetro del motor. Con el
+                    <em>delta</em> milimétrico y de horas, calcula la tasa de desgaste transversal y la proyecta hasta
+                    romper el límite teórico del fabricante.
+                </div>
+            </div>
+
+            <a href="{% url 'web:ayuda' %}"
+                class="block bg-gradient-to-r from-purple-900/40 to-navy-800 border border-purple-800/50 p-5 rounded-lg hover:border-purple-500 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-purple-900/50 flex items-center justify-center text-purple-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-200 group-hover:text-purple-300 transition-colors">Ver
+                            Procedimientos Oficiales</h4>
+                        <p class="text-xs text-gray-500 mt-1">Aprenda a instalar el reloj comparador en terreno.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function turbosDashboard() {
+        return {
+            filtro: 'TODO',
+        }
+    }
+</script>
+{% endblock %}

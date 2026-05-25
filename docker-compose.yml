@@ -1,0 +1,55 @@
+# TireWatch - Docker Compose (Unificado)
+# ==========================================
+# Uso: docker-compose up --build
+# Acceso: http://localhost:8000
+
+version: "3.9"
+
+services:
+  # --- Base de datos ---
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: tirewatch
+      POSTGRES_USER: tirewatch_user
+      POSTGRES_PASSWORD: tirewatch_dev_2025
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U tirewatch_user -d tirewatch" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Aplicación Django (API + Frontend HTMX) ---
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py init_tirewatch &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=True
+      - DJANGO_SECRET_KEY=dev-secret-key-cambiar-en-produccion
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=tirewatch
+      - DB_USER=tirewatch_user
+      - DB_PASSWORD=tirewatch_dev_2025
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

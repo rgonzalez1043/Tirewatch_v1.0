@@ -1,0 +1,73 @@
+{% extends "web/base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-2xl mx-auto space-y-6">
+
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
+        <h2 class="flex items-center gap-2 text-base font-bold text-gray-300 uppercase tracking-wider mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            {{ titulo }}
+        </h2>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="bg-red-900/30 border border-red-800 text-red-400 p-4 rounded-md text-sm">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {% for field in form %}
+                <div class="{% if field.name == 'is_active' %}col-span-full{% endif %}">
+                    <label for="{{ field.id_for_label }}"
+                        class="block text-xs text-gray-400 uppercase tracking-wider font-semibold mb-2">
+                        {{ field.label }}
+                    </label>
+
+                    {% if field.name == 'is_active' %}
+                    <div class="flex items-center gap-3 bg-navy-900 p-3 rounded-md border border-navy-700">
+                        {{ field }}
+                        <span class="text-sm text-gray-300">{{ field.help_text|default:"Marca esta casilla para permitir
+                            que el usuario inicie sesión." }}</span>
+                    </div>
+                    {% else %}
+                    {{ field }}
+                    {% endif %}
+
+                    {% if field.help_text and field.name != 'is_active' %}
+                    <p class="mt-1 text-[10px] text-gray-500">{{ field.help_text|safe }}</p>
+                    {% endif %}
+
+                    {% if field.errors %}
+                    <p class="mt-1 text-xs text-red-500 font-bold">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="flex justify-end gap-3 pt-6 border-t border-navy-700">
+                <a href="{% url 'web:usuarios_list' %}"
+                    class="px-5 py-2.5 bg-navy-700 text-gray-300 rounded font-bold text-sm hover:bg-navy-600 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit"
+                    class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded font-bold text-sm hover:from-blue-500 transition-all shadow shadow-blue-900/50 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Guardar Usuario
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

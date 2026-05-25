@@ -1,0 +1,103 @@
+﻿{% extends "web/base.html" %}
+{% block title %}Configuracion del Sistema{% endblock %}
+{% block content %}
+<div class="w-full max-w-4xl mx-auto space-y-6">
+  <!-- Cabecera -->
+  <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
+    <div class="flex items-center justify-between mb-6 border-b border-navy-700 pb-4">
+      <h2 class="flex items-center gap-2 text-lg font-bold text-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Configuracion Global del Sistema
+      </h2>
+      <span class="px-3 py-1 bg-red-900/40 text-red-400 border border-red-800 rounded-full text-xs font-bold flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2zM3 8a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H3z"/></svg>
+        Solo Administrador
+      </span>
+    </div>
+
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-3 rounded-md text-sm font-medium {% if message.tags == 'success' %}bg-green-900/40 text-green-400 border border-green-800{% else %}bg-red-900/40 text-red-400 border border-red-800{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <p class="text-sm text-gray-400 mb-8">
+      Estas configuraciones dictan como el motor predictivo de TireWatch analiza los equipos y genera alertas. 
+      Al modificar estos valores, <strong>todos los calculos futuros</strong> usaran inmediatamente las nuevas tolerancias.
+    </p>
+
+    <form method="POST" class="space-y-8">
+      {% csrf_token %}
+
+      <!-- NEUMATICOS -->
+      <div class="bg-navy-900/50 rounded-lg p-5 border border-navy-700">
+        <h3 class="flex items-center gap-2 text-md font-bold text-blue-400 mb-5 pb-2 border-b border-navy-700/50">
+          <span></span> Modulo Neumaticos
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Limite de Cambio (mm)</label>
+            {{ form.limite_cambio_neumatico_mm }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_cambio_neumatico_mm.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Filtro Antidumping (Pinchazo)</label>
+            {{ form.filtro_pinchazo_neumatico_mm }}
+            <p class="text-[10px] text-gray-500">{{ form.filtro_pinchazo_neumatico_mm.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Horas Diarias Operacion</label>
+            {{ form.horas_diarias_operacion }}
+            <p class="text-[10px] text-gray-500">{{ form.horas_diarias_operacion.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Profundidad Fabrica (mm)</label>
+            {{ form.prof_fabrica_neumatico }}
+            <p class="text-[10px] text-gray-500">{{ form.prof_fabrica_neumatico.help_text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TURBOS -->
+      <div class="bg-navy-900/50 rounded-lg p-5 border border-purple-900/30">
+        <h3 class="flex items-center gap-2 text-md font-bold text-purple-400 mb-5 pb-2 border-b border-navy-700/50">
+          <span></span> Modulo Turbos
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Limite Radial (mm)</label>
+            {{ form.limite_turbo_radial }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_turbo_radial.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Limite Axial (mm)</label>
+            {{ form.limite_turbo_axial }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_turbo_axial.help_text }}</p>
+          </div>
+          <div class="space-y-1.5 md:col-span-2">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Umbral de Alerta Temprana (0-1)</label>
+            {{ form.umbral_alerta_turbo_pct }}
+            <p class="text-[10px] text-gray-500">{{ form.umbral_alerta_turbo_pct.help_text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTON GUARDAR -->
+      <div class="flex justify-end pt-4">
+        <button type="submit" class="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-md transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>
+          Guardar Configuracion Global
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

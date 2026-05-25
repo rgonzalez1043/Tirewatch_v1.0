@@ -1,0 +1,214 @@
+{% extends "web/base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div x-data="dashboard()" x-init="cargar()" class="space-y-4">
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-navy-800 border border-navy-700 border-l-blue-500 border-l-[3px] rounded-lg p-4">
+            <div class="text-2xl font-extrabold text-gray-100" x-text="data?.total_equipos || 0"></div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Equipos</div>
+        </div>
+        <div class="bg-navy-800 border border-navy-700 border-l-green-500 border-l-[3px] rounded-lg p-4">
+            <div class="text-2xl font-extrabold text-gray-100" x-text="data?.total_mediciones || 0"></div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Mediciones</div>
+        </div>
+        <div class="bg-navy-800 border border-navy-700 border-l-yellow-500 border-l-[3px] rounded-lg p-4">
+            <div class="text-2xl font-extrabold text-gray-100" x-text="data?.total_alertas || 0"></div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Alertas</div>
+        </div>
+        <div class="bg-navy-800 border border-navy-700 border-l-purple-500 border-l-[3px] rounded-lg p-4">
+            <div class="text-2xl font-extrabold text-gray-100" x-text="data?.marcas_analizadas || 0"></div>
+            <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Marcas</div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-4 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Tipo</span>
+            <div class="flex bg-navy-950 rounded-md p-0.5">
+                <button @click="tipo='traccion'; cargar()"
+                    :class="tipo==='traccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500'"
+                    class="px-3 py-1.5 rounded text-xs font-medium transition-all">Traccionales</button>
+                <button @click="tipo='direccion'; cargar()"
+                    :class="tipo==='direccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500'"
+                    class="px-3 py-1.5 rounded text-xs font-medium transition-all">Direccionales</button>
+            </div>
+        </div>
+        <button @click="recalcular()" :disabled="analizando"
+            class="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-xs font-bold hover:from-blue-500 disabled:opacity-50 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2" :class="analizando ? 'animate-spin' : ''">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span x-text="analizando ? 'Analizando...' : 'Recalcular'"></span>
+        </button>
+    </div>
+
+    <!-- Alerts -->
+    <template x-if="data?.alertas?.length > 0">
+        <div class="bg-navy-800 border border-yellow-900/50 rounded-lg p-4">
+            <h3 class="flex items-center gap-2 text-xs font-bold text-yellow-400 uppercase tracking-wider mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Alertas — Próximos a Cambio
+            </h3>
+            <template x-for="(a, i) in data.alertas" :key="i">
+                <div
+                    class="flex items-center justify-between py-2.5 border-b border-navy-700 last:border-0 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-gray-100" x-text="'Equipo GPCO-' + a.equipo_numero"></span>
+                        <span
+                            :class="a.horas_restantes < 200 ? 'text-red-400 bg-red-900/20 border-red-800' : 'text-yellow-400 bg-yellow-900/20 border-yellow-800'"
+                            class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                            x-text="Math.round(a.horas_restantes) + ' hrs'"></span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span x-text="'Cambio: ' + a.fecha_cambio_estimada"></span>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </template>
+
+    <!-- Proyecciones -->
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-4">
+        <h3 class="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span x-text="'Equipos — ' + (tipo === 'traccion' ? 'Traccionales' : 'Direccionales')"></span>
+        </h3>
+
+        <div x-show="loading" class="text-center py-10 text-blue-400 animate-pulse text-sm">Cargando datos...</div>
+
+        <template x-if="!loading && (!data?.proyecciones?.length)">
+            <div class="text-center py-10 text-gray-600 text-sm">Sin proyecciones. Importe datos o ejecute el análisis.
+            </div>
+        </template>
+
+        <template x-if="!loading && data?.proyecciones?.length > 0">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Marca</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Pos. Crítica</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Hrs Restantes</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Fecha Cambio</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(p, i) in data.proyecciones" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 cursor-pointer transition-colors"
+                                @click="window.location.href='/equipos/'+p.equipo_numero+'/'">
+                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + p.equipo_numero"></td>
+                                <td class="p-3" x-text="p.marca_nombre"></td>
+                                <td class="p-3 font-mono text-blue-400 font-bold" x-text="p.posicion_critica"></td>
+                                <td class="p-3 font-bold" x-text="Math.round(p.horas_restantes) + ' hrs'"></td>
+                                <td class="p-3" x-text="p.fecha_cambio_estimada"></td>
+                                <td class="p-3">
+                                    <span :class="{
+                    'text-red-400 bg-red-900/20 border-red-800': p.estado === 'critico',
+                    'text-yellow-400 bg-yellow-900/20 border-yellow-800': p.estado === 'atencion',
+                    'text-green-400 bg-green-900/20 border-green-800': p.estado === 'ok'
+                  }" class="px-3 py-1 rounded-full text-xs font-bold border"
+                                        x-text="{'critico':'Crítico','atencion':'Atención','ok':'OK'}[p.estado] || p.estado"></span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </template>
+    </div>
+
+    <!-- Tasas -->
+    <template x-if="data?.tasas?.length > 0">
+        <div class="bg-navy-800 border border-navy-700 rounded-lg p-5">
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Tasas de Desgaste por Marca</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Marca
+                            </th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Posición</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                mm/día</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                mm/hora</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                mm/100h</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Mediciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(t, i) in data.tasas" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3 font-bold text-gray-200" x-text="t.marca_nombre"></td>
+                                <td class="p-3 text-blue-400 font-mono font-bold" x-text="t.posicion"></td>
+                                <td class="p-3" x-text="t.tasa_mm_dia.toFixed(4)"></td>
+                                <td class="p-3" x-text="t.tasa_mm_hora.toFixed(5)"></td>
+                                <td class="p-3 text-yellow-400 font-bold" x-text="t.tasa_mm_100h.toFixed(4)"></td>
+                                <td class="p-3" x-text="t.n_mediciones"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+</div>
+
+<script>
+    function dashboard() {
+        return {
+            data: null, tipo: 'traccion', loading: true, analizando: false,
+            token() { return sessionStorage.getItem('tw_token'); },
+            headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
+            async cargar() {
+                this.loading = true;
+                try {
+                    const res = await fetch('/api/neumaticos/dashboard/?tipo=' + this.tipo, { headers: this.headers() });
+                    if (res.status === 401) { window.location.href = '/login/'; return; }
+                    this.data = await res.json();
+                } catch (e) { console.error(e); }
+                this.loading = false;
+            },
+            async recalcular() {
+                this.analizando = true;
+                try {
+                    await fetch('/api/neumaticos/analisis/ejecutar/', { method: 'POST', headers: this.headers(), body: JSON.stringify({ tipo: this.tipo }) });
+                    await this.cargar();
+                } catch (e) { }
+                this.analizando = false;
+            }
+        }
+    }
+</script>
+{% endblock %}

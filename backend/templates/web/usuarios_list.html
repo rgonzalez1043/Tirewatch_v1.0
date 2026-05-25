@@ -1,0 +1,100 @@
+{% extends "web/base.html" %}
+{% block title %}Usuarios del Sistema{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-6xl mx-auto space-y-6">
+
+    <div class="flex justify-between items-center bg-navy-800 border border-navy-700 rounded-lg p-6">
+        <div>
+            <h2 class="flex items-center gap-2 text-base font-bold text-gray-300 uppercase tracking-wider mb-1">
+                <span class="text-xl">👥</span> Administración de Usuarios
+            </h2>
+            <p class="text-xs text-gray-500">Gestione los perfiles de acceso y roles operativos.</p>
+        </div>
+        <a href="{% url 'web:usuario_crear' %}"
+            class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded font-bold text-sm hover:from-blue-500 transition-colors shadow shadow-blue-900/50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Nuevo Usuario
+        </a>
+    </div>
+
+    <!-- Lista de Usuarios -->
+    <div class="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-gray-500 uppercase bg-navy-900/50">
+                    <tr>
+                        <th class="px-6 py-4 font-semibold">Usuario</th>
+                        <th class="px-6 py-4 font-semibold">Nombre Completo</th>
+                        <th class="px-6 py-4 font-semibold">Rol / Cargo</th>
+                        <th class="px-6 py-4 font-semibold">Departamento</th>
+                        <th class="px-6 py-4 font-semibold text-center">Estado</th>
+                        <th class="px-6 py-4 font-semibold text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-navy-700/50">
+                    {% for u in usuarios %}
+                    <tr class="hover:bg-navy-700/30 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-gray-200">{{ u.username }}</div>
+                            <div class="text-[10px] text-gray-500 mt-0.5">{{ u.email|default:"Sin email" }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-gray-300">
+                            {{ u.first_name }} {{ u.last_name }}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold
+                                {% if u.rol == 'admin' %}bg-red-900/30 text-red-400 border border-red-800/50
+                                {% elif u.rol == 'supervisor' %}bg-yellow-900/30 text-yellow-500 border border-yellow-800/50
+                                {% elif u.rol == 'tecnico' %}bg-blue-900/30 text-blue-400 border border-blue-800/50
+                                {% else %}bg-gray-800 text-gray-400 border border-gray-700{% endif %}">
+                                {{ u.get_rol_display }}
+                            </span>
+                            {% if u.cargo %}
+                            <div class="text-[10px] text-gray-500 mt-1">{{ u.cargo }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-gray-400 text-xs">
+                            {{ u.departamento.nombre|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if u.is_active %}
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-green-900/20 text-green-500">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Activo
+                            </span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-red-900/20 text-red-500">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> Inactivo
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'web:usuario_editar' u.id %}"
+                                class="inline-flex items-center justify-center w-8 h-8 rounded bg-navy-700 text-gray-400 hover:text-white hover:bg-blue-600 transition-colors"
+                                title="Editar">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500 text-sm">
+                            No hay usuarios registrados aparte de ti.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

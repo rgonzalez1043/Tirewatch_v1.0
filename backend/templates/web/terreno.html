@@ -1,0 +1,287 @@
+{% extends "web/base.html" %}
+{% block title %}Terreno{% endblock %}
+
+{% block content %}
+<div class="w-full space-y-6" x-data="terreno()" x-init="init()">
+
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
+        <h2 class="flex items-center gap-2 text-base font-bold text-gray-300 uppercase tracking-wider mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Registro en Terreno
+        </h2>
+        <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+            <p class="text-sm text-gray-500">Ingrese mediciones directamente desde el equipo. Los datos se guardan en la
+                base de datos.</p>
+            <a href="{% url 'web:ayuda' %}"
+                class="flex items-center gap-1.5 text-xs text-purple-400 font-bold hover:text-purple-300 transition-colors bg-purple-900/20 px-3 py-1.5 rounded border border-purple-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Ver Tutoriales de Medición
+            </a>
+        </div>
+
+        <!-- Tipo toggle -->
+        <div class="flex bg-navy-950 rounded-md p-1 mb-6 w-fit">
+            <button @click="tipo='traccion'; cargarRecientes()"
+                :class="tipo==='traccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
+                class="px-5 py-2 rounded text-sm font-medium transition-all">Traccionales</button>
+            <button @click="tipo='direccion'; cargarRecientes()"
+                :class="tipo==='direccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
+                class="px-5 py-2 rounded text-sm font-medium transition-all">Direccionales</button>
+            <button @click="tipo='turbos'; cargarRecientes()"
+                :class="tipo==='turbos' ? 'bg-navy-700 text-purple-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
+                class="px-5 py-2 rounded text-sm font-medium transition-all">Turbos</button>
+        </div>
+
+        <!-- Campos Base -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">N° Equipo</label>
+                <input type="number" x-model="form.equipo_numero"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
+                    placeholder="Ej: 101" />
+            </div>
+
+            <div x-show="tipo !== 'turbos'">
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Marca</label>
+                <select x-model="form.marca_nombre"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
+                    <option value="GOODYEAR">Goodyear</option>
+                    <option value="CONTINENTAL">Continental</option>
+                    <option value="BKT">BKT</option>
+                </select>
+            </div>
+
+            <div x-show="tipo === 'turbos'">
+                <label class="block text-xs text-purple-400 uppercase tracking-wider font-semibold mb-2">Horómetro
+                    Motor</label>
+                <input type="number" x-model="form.horometro_motor"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-purple-500 focus:outline-none font-mono"
+                    placeholder="Hrs de motor" />
+            </div>
+
+            <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Fecha</label>
+                <input type="date" x-model="form.fecha"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none" />
+            </div>
+        </div>
+
+        <!-- Posiciones traccionales -->
+        <div x-show="tipo==='traccion'" class="grid grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+            <template x-for="pos in ['h1','h2','h3','h4','h5','h6','h7','h8']" :key="pos">
+                <div>
+                    <label class="block text-xs text-blue-400 font-bold uppercase tracking-wider mb-2 text-center"
+                        x-text="pos.toUpperCase()+' (mm)'"></label>
+                    <input type="number" step="0.1" x-model="form[pos]"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-3 py-3 text-base text-gray-200 text-center font-mono focus:border-blue-500 focus:outline-none"
+                        placeholder="mm" />
+                </div>
+            </template>
+        </div>
+
+        <!-- Posiciones direccionales -->
+        <div x-show="tipo==='direccion'" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <template x-for="pos in ['d1','d2']" :key="pos">
+                <div>
+                    <label class="block text-xs text-blue-400 font-bold uppercase tracking-wider mb-2 text-center"
+                        x-text="pos.toUpperCase()+' (mm)'"></label>
+                    <input type="number" step="0.1" x-model="form[pos]"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-3 py-3 text-base text-gray-200 text-center font-mono focus:border-blue-500 focus:outline-none"
+                        placeholder="mm" />
+                </div>
+            </template>
+        </div>
+
+        <!-- Posiciones Turbos -->
+        <div x-show="tipo==='turbos'" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Juego Radial
+                    (mm)</label>
+                <p class="text-[10px] text-gray-500 mb-3">Movimiento de lado a lado del eje.</p>
+                <input type="number" step="0.00001" x-model="form.juego_radial"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-lg text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
+                    placeholder="0.00" />
+            </div>
+            <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Juego Axial
+                    (mm)</label>
+                <p class="text-[10px] text-gray-500 mb-3">Movimiento hacia adentro y afuera.</p>
+                <input type="number" step="0.00001" x-model="form.juego_axial"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-lg text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
+                    placeholder="0.00" />
+            </div>
+
+            <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Inspección
+                    Visual</label>
+                <p class="text-[10px] text-gray-500 mb-3">Estado general al desarmar.</p>
+                <select x-model="form.estado_visual"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-sm text-gray-200 focus:border-purple-500 focus:outline-none">
+                    <option value="OK">Buen estado - Sin anomalías</option>
+                    <option value="FUGA_ACEITE">Fuga visible de aceite en caracola</option>
+                    <option value="ROCE_ASPAS">Roce metálico de álabes en carcasa</option>
+                    <option value="OTRO">Otro (Ver observaciones)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="mb-6">
+            <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Observaciones</label>
+            <input type="text" x-model="form.observaciones"
+                class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
+                placeholder="Ej: Neumático con desgaste irregular H3" />
+        </div>
+
+        <button @click="guardar()"
+            class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-sm font-bold hover:from-blue-500 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Guardar Medición
+        </button>
+    </div>
+
+    <!-- Recientes -->
+    <template x-if="recientes.length > 0">
+        <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
+            <h3 class="text-sm text-gray-400 font-bold uppercase tracking-wider mb-4"
+                x-text="'Últimas 10 Mediciones (' + (tipo==='traccion' ? 'Traccionales' : 'Direccionales') + ')'"></h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha
+                            </th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Marca
+                            </th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Valores</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">
+                                Origen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(m, i) in recientes" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + m.equipo_numero"></td>
+                                <td class="p-3" x-text="m.fecha"></td>
+                                <td class="p-3" x-text="m.marca_nombre"></td>
+                                <td class="p-3 font-mono text-blue-400 font-bold"
+                                    x-text="Object.entries(m.posiciones||{}).map(([k,v])=>k+':'+v).join(' | ')"></td>
+                                <td class="p-3">
+                                    <span
+                                        :class="m.origen==='terreno' ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-blue-900/20 text-blue-400 border-blue-800'"
+                                        class="px-3 py-1 rounded-full text-xs font-bold border"
+                                        x-text="m.origen"></span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Toast -->
+    <div x-show="toast" x-cloak
+        :class="toast?.type==='error' ? 'bg-red-900 text-red-300 border-red-800' : 'bg-green-900 text-green-300 border-green-800'"
+        class="fixed bottom-6 right-6 px-5 py-3 rounded-lg text-sm font-semibold shadow-lg border z-50"
+        x-text="toast?.msg"></div>
+</div>
+
+<script>
+    function terreno() {
+        const today = new Date().toISOString().split('T')[0];
+        return {
+            tipo: 'traccion', recientes: [], toast: null,
+            form: {
+                equipo_numero: '', marca_nombre: 'GOODYEAR', fecha: today, observaciones: '',
+                h1: '', h2: '', h3: '', h4: '', h5: '', h6: '', h7: '', h8: '', d1: '', d2: '',
+                horometro_motor: '', juego_radial: '', juego_axial: '', estado_visual: 'OK'
+            },
+            token() { return sessionStorage.getItem('tw_token'); },
+            headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
+            async init() { this.cargarRecientes(); },
+
+            async cargarRecientes() {
+                let url = `/api/neumaticos/mediciones/?tipo=${this.tipo}&ordering=-fecha&page_size=10`;
+                if (this.tipo === 'turbos') {
+                    url = `/api/turbos/mediciones/?ordering=-fecha&page_size=10`;
+                }
+                const res = await fetch(url, { headers: this.headers() });
+                const data = await res.json();
+                this.recientes = data.results || [];
+            },
+
+            showToast(msg, type = 'success') {
+                this.toast = { msg, type };
+                setTimeout(() => this.toast = null, 3500);
+            },
+
+            async guardar() {
+                const num = parseInt(this.form.equipo_numero);
+                if (!num || num <= 0) { this.showToast('Ingrese un número de equipo válido', 'error'); return; }
+
+                let payload = {};
+                let endpoint = '';
+
+                if (this.tipo === 'turbos') {
+                    if (!this.form.horometro_motor || !this.form.juego_radial || !this.form.juego_axial) {
+                        this.showToast('Horómetro y mediciones son obligatorios', 'error'); return;
+                    }
+                    payload = {
+                        equipo_numero: num,
+                        fecha: this.form.fecha,
+                        horometro_motor: parseInt(this.form.horometro_motor),
+                        juego_radial: parseFloat(this.form.juego_radial),
+                        juego_axial: parseFloat(this.form.juego_axial),
+                        estado_visual: this.form.estado_visual,
+                        observaciones: this.form.observaciones
+                    };
+                    endpoint = '/api/turbos/mediciones/';
+                } else {
+                    payload = {
+                        equipo_numero: num, marca_nombre: this.form.marca_nombre,
+                        fecha: this.form.fecha, tipo: this.tipo
+                    };
+                    const posiciones = this.tipo === 'traccion' ? ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'] : ['d1', 'd2'];
+                    posiciones.forEach(p => { const v = parseFloat(this.form[p]); if (!isNaN(v) && v > 0) payload[p] = v; });
+                    if (this.form.observaciones) payload.observaciones = this.form.observaciones;
+                    endpoint = '/api/neumaticos/mediciones/';
+                }
+
+                try {
+                    const res = await fetch(endpoint, { method: 'POST', headers: this.headers(), body: JSON.stringify(payload) });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.equipo_numero?.[0] || err.detail || 'Error al guardar (revise duplicidad en fecha/horómetro)');
+                    }
+                    this.showToast(`Medición guardada para Equipo GPCO-${num}`);
+                    this.limpiarFormulario();
+                    this.cargarRecientes();
+                } catch (e) { this.showToast(e.message, 'error'); }
+            },
+
+            limpiarFormulario() {
+                ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'd1', 'd2', 'juego_radial', 'juego_axial', 'horometro_motor'].forEach(p => this.form[p] = '');
+                this.form.equipo_numero = '';
+                this.form.observaciones = '';
+                this.form.estado_visual = 'OK';
+            }
+        }
+    }
+</script>
+{% endblock %}
