@@ -2,50 +2,54 @@
 {% block title %}Terreno{% endblock %}
 
 {% block content %}
+{% load l10n %}
 <div class="w-full space-y-6" x-data="terreno()" x-init="init()">
 
     <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
-        <h2 class="flex items-center gap-2 text-base font-bold text-gray-300 uppercase tracking-wider mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Registro en Terreno
-        </h2>
         <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
-            <p class="text-sm text-gray-500">Ingrese mediciones directamente desde el equipo. Los datos se guardan en la
-                base de datos.</p>
+            <div>
+                <h2 class="flex items-center gap-2 text-base font-bold text-gray-300 uppercase tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Registro en Terreno
+                </h2>
+                <p class="text-xs text-gray-500 mt-1">Punto único de ingreso de mediciones desde el equipo.</p>
+            </div>
             <a href="{% url 'web:ayuda' %}"
-                class="flex items-center gap-1.5 text-xs text-purple-400 font-bold hover:text-purple-300 transition-colors bg-purple-900/20 px-3 py-1.5 rounded border border-purple-800/50">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                class="flex items-center gap-1.5 text-xs text-purple-400 font-bold hover:text-purple-300 bg-purple-900/20 px-3 py-1.5 rounded border border-purple-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Ver Tutoriales de Medición
+                Tutoriales de Medición
             </a>
         </div>
 
-        <!-- Tipo toggle -->
-        <div class="flex bg-navy-950 rounded-md p-1 mb-6 w-fit">
-            <button @click="tipo='traccion'; cargarRecientes()"
+        <!-- ── Tabs ─────────────────────────────────────────── -->
+        <div class="flex flex-wrap bg-navy-950 rounded-lg p-1 mb-6 gap-0.5">
+            <button @click="switchTab('traccion')"
                 :class="tipo==='traccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
-                class="px-5 py-2 rounded text-sm font-medium transition-all">Traccionales</button>
-            <button @click="tipo='direccion'; cargarRecientes()"
+                class="px-4 py-2 rounded text-sm font-medium transition-all">🔵 Traccionales</button>
+            <button @click="switchTab('direccion')"
                 :class="tipo==='direccion' ? 'bg-navy-700 text-blue-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
-                class="px-5 py-2 rounded text-sm font-medium transition-all">Direccionales</button>
-            <button @click="tipo='turbos'; cargarRecientes()"
-                :class="tipo==='turbos' ? 'bg-navy-700 text-purple-400 font-bold' : 'text-gray-500 hover:text-gray-300'"
-                class="px-5 py-2 rounded text-sm font-medium transition-all">Turbos</button>
+                class="px-4 py-2 rounded text-sm font-medium transition-all">⬜ Direccionales</button>
+            <button @click="switchTab('turbos')"
+                :class="tipo==='turbos' ? 'bg-navy-700 text-purple-400 font-bold' : 'text-gray-500 hover:text-purple-400'"
+                class="px-4 py-2 rounded text-sm font-medium transition-all">⚙️ Turbos</button>
+            <button @click="switchTab('frenos')"
+                :class="tipo==='frenos' ? 'bg-navy-700 text-red-400 font-bold' : 'text-gray-500 hover:text-red-400'"
+                class="px-4 py-2 rounded text-sm font-medium transition-all">🛑 Frenos</button>
+            <button @click="switchTab('cadenas')"
+                :class="tipo==='cadenas' ? 'bg-navy-700 text-yellow-400 font-bold' : 'text-gray-500 hover:text-yellow-400'"
+                class="px-4 py-2 rounded text-sm font-medium transition-all">⛓️ Cadenas</button>
         </div>
 
-        <!-- Campos Base -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- ── Campos Base (comunes a todos los tabs) ────────── -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
             <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Tipo Equipo</label>
-                <select x-model="form.tipo_equipo_codigo"
+                <select x-model="form.tipo_equipo_codigo" @change="frenosComponentes = []; frenosEspesores = {}"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
                     <option value="">— Tipo —</option>
                     <template x-for="t in tiposEquipo" :key="t.id">
@@ -55,42 +59,51 @@
             </div>
             <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">N° Equipo</label>
-                <input type="number" x-model="form.equipo_numero"
+                <input type="number" x-model="form.equipo_numero" @change="frenosComponentes = []; frenosEspesores = {}"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
                     placeholder="Ej: 101" />
             </div>
-
-            <div x-show="tipo !== 'turbos'">
+            <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Fecha</label>
+                <input type="date" x-model="form.fecha"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none" />
+            </div>
+            <!-- Marca (solo neumáticos) -->
+            <div x-show="tipo === 'traccion' || tipo === 'direccion'">
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Marca</label>
                 <select x-model="form.marca_nombre"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
                     <option value="GOODYEAR">Goodyear</option>
                     <option value="CONTINENTAL">Continental</option>
                     <option value="BKT">BKT</option>
+                    <option value="MICHELIN">Michelin</option>
+                    <option value="BRIDGESTONE">Bridgestone</option>
                 </select>
             </div>
-
+            <!-- Horómetro Motor (solo turbos) -->
             <div x-show="tipo === 'turbos'">
-                <label class="block text-xs text-purple-400 uppercase tracking-wider font-semibold mb-2">Horómetro
-                    Motor</label>
+                <label class="block text-xs text-purple-400 uppercase tracking-wider font-semibold mb-2">Horómetro Motor</label>
                 <input type="number" x-model="form.horometro_motor"
-                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-purple-500 focus:outline-none font-mono"
-                    placeholder="Hrs de motor" />
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
+                    placeholder="Hrs motor" />
             </div>
-
-            <div>
-                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Fecha</label>
-                <input type="date" x-model="form.fecha"
-                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none" />
+            <!-- Horómetro Equipo (frenos y cadenas) -->
+            <div x-show="tipo === 'frenos' || tipo === 'cadenas'">
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Horómetro Equipo <span class="text-gray-600">(opcional)</span></label>
+                <input type="number" x-model="form.horometro" step="0.1"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-blue-500 focus:outline-none"
+                    placeholder="Ej: 14520" />
             </div>
         </div>
 
-        <!-- Posiciones traccionales -->
-        <div x-show="tipo==='traccion'" class="grid grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- TRACCIONALES: H1–H8                               -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div x-show="tipo === 'traccion'" class="grid grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
             <template x-for="pos in ['h1','h2','h3','h4','h5','h6','h7','h8']" :key="pos">
                 <div>
                     <label class="block text-xs text-blue-400 font-bold uppercase tracking-wider mb-2 text-center"
-                        x-text="pos.toUpperCase()+' (mm)'"></label>
+                        x-text="pos.toUpperCase() + ' (mm)'"></label>
                     <input type="number" step="0.1" x-model="form[pos]"
                         class="w-full bg-navy-950 border border-navy-700 rounded-lg px-3 py-3 text-base text-gray-200 text-center font-mono focus:border-blue-500 focus:outline-none"
                         placeholder="mm" />
@@ -98,12 +111,14 @@
             </template>
         </div>
 
-        <!-- Posiciones direccionales -->
-        <div x-show="tipo==='direccion'" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- DIRECCIONALES: D1–D2                              -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div x-show="tipo === 'direccion'" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <template x-for="pos in ['d1','d2']" :key="pos">
                 <div>
                     <label class="block text-xs text-blue-400 font-bold uppercase tracking-wider mb-2 text-center"
-                        x-text="pos.toUpperCase()+' (mm)'"></label>
+                        x-text="pos.toUpperCase() + ' (mm)'"></label>
                     <input type="number" step="0.1" x-model="form[pos]"
                         class="w-full bg-navy-950 border border-navy-700 rounded-lg px-3 py-3 text-base text-gray-200 text-center font-mono focus:border-blue-500 focus:outline-none"
                         placeholder="mm" />
@@ -111,32 +126,30 @@
             </template>
         </div>
 
-        <!-- Posiciones Turbos -->
-        <div x-show="tipo==='turbos'" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- TURBOS: Radial, Axial, Visual                     -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div x-show="tipo === 'turbos'" class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
             <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
-                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Juego Radial
-                    (mm)</label>
-                <p class="text-[10px] text-gray-500 mb-3">Movimiento de lado a lado del eje.</p>
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-1">Juego Radial (mm)</label>
+                <p class="text-[10px] text-gray-500 mb-3">Movimiento lateral del eje.</p>
                 <input type="number" step="0.00001" x-model="form.juego_radial"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-lg text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
-                    placeholder="0.00" />
+                    placeholder="0.0000" />
             </div>
             <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
-                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Juego Axial
-                    (mm)</label>
-                <p class="text-[10px] text-gray-500 mb-3">Movimiento hacia adentro y afuera.</p>
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-1">Juego Axial (mm)</label>
+                <p class="text-[10px] text-gray-500 mb-3">Movimiento longitudinal del eje.</p>
                 <input type="number" step="0.00001" x-model="form.juego_axial"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-lg text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
-                    placeholder="0.00" />
+                    placeholder="0.0000" />
             </div>
-
             <div class="bg-navy-900 border border-navy-700 rounded-lg p-4">
-                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-2">Inspección
-                    Visual</label>
+                <label class="block text-xs text-purple-400 font-bold uppercase tracking-wider mb-1">Inspección Visual</label>
                 <p class="text-[10px] text-gray-500 mb-3">Estado general al desarmar.</p>
                 <select x-model="form.estado_visual"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-sm text-gray-200 focus:border-purple-500 focus:outline-none">
-                    <option value="OK">Buen estado - Sin anomalías</option>
+                    <option value="OK">Buen estado — Sin anomalías</option>
                     <option value="FUGA_ACEITE">Fuga visible de aceite en caracola</option>
                     <option value="ROCE_ASPAS">Roce metálico de álabes en carcasa</option>
                     <option value="OTRO">Otro (Ver observaciones)</option>
@@ -144,57 +157,189 @@
             </div>
         </div>
 
-        <!-- Observaciones -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- FRENOS: Buscar → Medir cada posición              -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div x-show="tipo === 'frenos'" class="mb-6 space-y-4">
+
+            <!-- Botón Buscar Frenos -->
+            <div x-show="!frenosComponentes.length">
+                <div class="flex items-center gap-3">
+                    <button @click="buscarComponentesFrenos()" :disabled="frenosCargando || !form.tipo_equipo_codigo || !form.equipo_numero"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
+                        <svg x-show="frenosCargando" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <span x-text="frenosCargando ? 'Buscando...' : '🛑 Cargar Frenos del Equipo'"></span>
+                    </button>
+                    <p class="text-xs text-gray-500">Selecciona tipo y número de equipo arriba, luego pulsa este botón.</p>
+                </div>
+                <div class="mt-2 text-xs text-gray-600">
+                    ℹ️ Si el equipo no tiene frenos registrados, ve a la sección
+                    <a href="{% url 'web:frenos_dashboard' %}" class="text-red-400 hover:underline">Frenos → Registrar Componente</a> primero.
+                </div>
+            </div>
+
+            <!-- Grid de componentes cargados -->
+            <div x-show="frenosComponentes.length > 0">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-xs font-bold text-red-400 uppercase tracking-wider">
+                        Frenos de <span x-text="form.tipo_equipo_codigo + '-' + form.equipo_numero"></span>
+                        — <span x-text="frenosComponentes.length"></span> posición(es) activa(s)
+                    </p>
+                    <button @click="frenosComponentes = []; frenosEspesores = {}" class="text-xs text-gray-500 hover:text-gray-300 underline">
+                        ✕ Cambiar equipo
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <template x-for="c in frenosComponentes" :key="c.id">
+                        <div class="bg-navy-900 border border-navy-700 rounded-lg p-3 flex items-center gap-3">
+                            <!-- Badge tipo freno -->
+                            <div :class="{
+                                'bg-blue-500/20 text-blue-400': c.tipo_freno === 'disco',
+                                'bg-orange-500/20 text-orange-400': c.tipo_freno === 'tambor',
+                                'bg-purple-500/20 text-purple-400': c.tipo_freno === 'tambor_aire'
+                            }" class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                <span x-text="c.tipo_freno === 'disco' ? 'D' : c.tipo_freno === 'tambor' ? 'T' : 'A'"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs font-bold text-gray-200 truncate" x-text="c.posicion_display"></div>
+                                <div class="text-[10px] text-gray-500" x-text="c.tipo_freno_display + ' · Fab: ' + (c.espesor_fabrica_mm || '?') + ' mm'"></div>
+                            </div>
+                            <!-- Input espesor -->
+                            <div class="flex items-center gap-1.5 flex-shrink-0">
+                                <input type="number" step="0.1" min="0.1"
+                                    :value="frenosEspesores[c.id]"
+                                    @input="frenosEspesores[c.id] = $event.target.value"
+                                    :placeholder="c.espesor_actual_mm ? c.espesor_actual_mm.toFixed(1) : '?'"
+                                    :class="frenosEspesores[c.id] && parseFloat(frenosEspesores[c.id]) <= limiteFreno(c.tipo_freno) ? 'border-red-600 text-red-400' : 'border-navy-600 text-gray-200'"
+                                    class="w-20 bg-navy-950 border rounded-lg py-2 px-2 text-sm font-mono text-right focus:outline-none focus:ring-1 focus:ring-red-500" />
+                                <span class="text-gray-600 text-xs">mm</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <p class="text-[10px] text-gray-600 mt-2">
+                    🔴 Rojo = en límite o superado · Límite tambor: {{ config.limite_freno_tambor_mm }} mm · Disco: {{ config.limite_freno_disco_mm }} mm
+                </p>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- CADENAS: Elongación                               -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div x-show="tipo === 'cadenas'" class="mb-6 space-y-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs text-yellow-400 uppercase tracking-wider font-semibold mb-2">Tipo de Cadena</label>
+                    <select x-model="cadenas.tipo_cadena"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-sm text-gray-200 focus:border-yellow-500 focus:outline-none">
+                        <option value="spreader_principal">Cadena Principal de Spreader</option>
+                        <option value="spreader_secundaria">Cadena Secundaria de Spreader</option>
+                        <option value="elevacion">Cadena de Elevación</option>
+                        <option value="traslacion">Cadena de Traslación</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-yellow-400 uppercase tracking-wider font-semibold mb-2">Long. Nominal (mm)</label>
+                    <input type="number" step="0.1" x-model="cadenas.longitud_nominal_mm"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-yellow-500 focus:outline-none"
+                        placeholder="mm nueva" />
+                </div>
+                <div>
+                    <label class="block text-xs text-yellow-400 uppercase tracking-wider font-semibold mb-2">Long. Medida (mm)</label>
+                    <input type="number" step="0.1" x-model="cadenas.longitud_medida_mm"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-yellow-500 focus:outline-none"
+                        placeholder="mm actual" />
+                </div>
+                <div>
+                    <label class="block text-xs text-yellow-400 uppercase tracking-wider font-semibold mb-2">N° Eslabones</label>
+                    <input type="number" x-model="cadenas.num_eslabones" min="1"
+                        class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-yellow-500 focus:outline-none"
+                        placeholder="12" />
+                </div>
+            </div>
+            <!-- Elongación calculada en tiempo real -->
+            <div x-show="cadenas.longitud_nominal_mm && cadenas.longitud_medida_mm"
+                class="bg-navy-900 border border-navy-700 rounded-lg px-4 py-3 flex items-center gap-3">
+                <span class="text-xs text-gray-400">Elongación calculada:</span>
+                <span class="text-lg font-bold font-mono"
+                    :class="elongacionPct() >= {{ config.limite_elongacion_cadena_pct }} ? 'text-red-400' : elongacionPct() >= {{ config.umbral_alerta_cadena_pct }} ? 'text-yellow-400' : 'text-green-400'"
+                    x-text="elongacionPct().toFixed(2) + '%'">
+                </span>
+                <span class="text-xs text-gray-600">
+                    (Límite: {{ config.limite_elongacion_cadena_pct }}% · Alerta: {{ config.umbral_alerta_cadena_pct }}%)
+                </span>
+            </div>
+            <p class="text-[10px] text-gray-600">⚠️ Medir bajo tensión sobre 10-12 eslabones (pin a pin). Solo aplica a equipos Taylor.</p>
+        </div>
+
+        <!-- ── Observaciones ──────────────────────────────── -->
         <div class="mb-6">
             <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Observaciones</label>
             <input type="text" x-model="form.observaciones"
                 class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
-                placeholder="Ej: Neumático con desgaste irregular H3" />
+                :placeholder="tipo === 'frenos' ? 'Ruidos, vibración, desgaste irregular...' : tipo === 'cadenas' ? 'Corrosión, eslabón dañado, deformación...' : 'Observaciones generales...'" />
         </div>
 
+        <!-- ── Botón Guardar ──────────────────────────────── -->
         <button @click="guardar()"
-            class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-sm font-bold hover:from-blue-500 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="2">
+            :disabled="guardando || (tipo === 'frenos' && !frenosComponentes.length)"
+            :class="{
+                'from-blue-600 to-blue-700 hover:from-blue-500': tipo === 'traccion' || tipo === 'direccion',
+                'from-purple-700 to-purple-800 hover:from-purple-600': tipo === 'turbos',
+                'from-red-700 to-red-800 hover:from-red-600': tipo === 'frenos',
+                'from-yellow-600 to-yellow-700 hover:from-yellow-500': tipo === 'cadenas',
+            }"
+            class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r text-white rounded-lg text-sm font-bold transition-all disabled:opacity-40">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Guardar Medición
+            <span x-text="guardando ? 'Guardando...' : {
+                traccion: 'Guardar Medición Neumáticos',
+                direccion: 'Guardar Medición Neumáticos',
+                turbos: 'Guardar Medición Turbo',
+                frenos: frenosComponentes.length ? 'Guardar Medición Frenos (' + frenosComponentes.length + ' pos.)' : 'Carga los frenos del equipo primero',
+                cadenas: 'Guardar Medición Cadena'
+            }[tipo]"></span>
         </button>
     </div>
 
-    <!-- Recientes -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- RECIENTES                                             -->
+    <!-- ══════════════════════════════════════════════════════ -->
     <template x-if="recientes.length > 0">
         <div class="bg-navy-800 border border-navy-700 rounded-lg p-6 sm:p-8">
             <h3 class="text-sm text-gray-400 font-bold uppercase tracking-wider mb-4"
-                x-text="'Últimas 10 Mediciones — ' + {traccion:'Traccionales', direccion:'Direccionales', turbos:'Turbos'}[tipo]">
+                x-text="'Últimas mediciones — ' + {traccion:'Traccionales', direccion:'Direccionales', turbos:'Turbos', frenos:'Frenos', cadenas:'Cadenas'}[tipo]">
             </h3>
             <div class="overflow-x-auto">
 
-                <!-- Tabla neumáticos (traccion / direccion) -->
-                <table x-show="tipo !== 'turbos'" class="w-full text-sm">
+                <!-- Tabla neumáticos -->
+                <table x-show="tipo === 'traccion' || tipo === 'direccion'" class="w-full text-sm">
                     <thead>
                         <tr class="border-b-2 border-navy-700">
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Equipo</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Marca</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Valores (mm)</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Origen</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Marca</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Valores (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Origen</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(m, i) in recientes" :key="i">
                             <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
                                 <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
-                                <td class="p-3" x-text="m.fecha"></td>
-                                <td class="p-3" x-text="m.marca_nombre"></td>
-                                <td class="p-3 font-mono text-blue-400 font-bold"
+                                <td class="p-3 text-gray-400" x-text="m.fecha"></td>
+                                <td class="p-3 text-gray-400" x-text="m.marca_nombre"></td>
+                                <td class="p-3 font-mono text-blue-400 font-bold text-xs"
                                     x-text="Object.entries(m.posiciones||{}).map(([k,v])=>k+':'+v).join(' | ')"></td>
                                 <td class="p-3">
-                                    <span :class="m.origen==='terreno'
-                                            ? 'bg-green-900/20 text-green-400 border-green-800'
-                                            : 'bg-blue-900/20 text-blue-400 border-blue-800'"
-                                        class="px-3 py-1 rounded-full text-xs font-bold border"
-                                        x-text="m.origen"></span>
+                                    <span :class="m.origen==='terreno' ? 'bg-green-900/20 text-green-400 border-green-800' : 'bg-blue-900/20 text-blue-400 border-blue-800'"
+                                        class="px-2 py-0.5 rounded-full text-xs font-bold border" x-text="m.origen"></span>
                                 </td>
                             </tr>
                         </template>
@@ -205,32 +350,84 @@
                 <table x-show="tipo === 'turbos'" class="w-full text-sm">
                     <thead>
                         <tr class="border-b-2 border-navy-700">
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Equipo</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Fecha</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Horómetro</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold text-center">Radial (mm)</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold text-center">Axial (mm)</th>
-                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs font-semibold">Estado Visual</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Horómetro</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Radial (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Axial (mm)</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Visual</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(m, i) in recientes" :key="i">
                             <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
                                 <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
-                                <td class="p-3" x-text="m.fecha"></td>
-                                <td class="p-3 font-mono text-gray-300" x-text="(m.horometro_motor || '—') + ' hrs'"></td>
+                                <td class="p-3 text-gray-400" x-text="m.fecha"></td>
+                                <td class="p-3 font-mono text-gray-400" x-text="(m.horometro_motor || '—') + ' h'"></td>
                                 <td class="p-3 font-mono font-bold text-purple-400 text-center" x-text="m.juego_radial != null ? m.juego_radial.toFixed(4) : '—'"></td>
                                 <td class="p-3 font-mono font-bold text-purple-400 text-center" x-text="m.juego_axial != null ? m.juego_axial.toFixed(4) : '—'"></td>
                                 <td class="p-3">
                                     <span :class="{
-                                            'bg-red-900/20 text-red-400 border-red-800':   m.estado_visual === 'FUGA_ACEITE' || m.estado_visual === 'ROCE_ASPAS',
-                                            'bg-yellow-900/20 text-yellow-400 border-yellow-800': m.estado_visual === 'OTRO',
-                                            'bg-green-900/20 text-green-400 border-green-800':  m.estado_visual === 'OK'
-                                        }"
-                                        class="px-3 py-1 rounded-full text-xs font-bold border"
-                                        x-text="{'OK':'OK','FUGA_ACEITE':'Fuga Aceite','ROCE_ASPAS':'Roce Álabes','OTRO':'Otro'}[m.estado_visual] || m.estado_visual">
-                                    </span>
+                                        'bg-red-900/20 text-red-400 border-red-800': m.estado_visual === 'FUGA_ACEITE' || m.estado_visual === 'ROCE_ASPAS',
+                                        'bg-yellow-900/20 text-yellow-400 border-yellow-800': m.estado_visual === 'OTRO',
+                                        'bg-green-900/20 text-green-400 border-green-800': m.estado_visual === 'OK'
+                                    }" class="px-2 py-0.5 rounded-full text-xs font-bold border"
+                                    x-text="{'OK':'OK','FUGA_ACEITE':'Fuga Aceite','ROCE_ASPAS':'Roce Álabes','OTRO':'Otro'}[m.estado_visual] || m.estado_visual"></span>
                                 </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Tabla frenos -->
+                <table x-show="tipo === 'frenos'" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Posición</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Tipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Espesor (mm)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(m, i) in recientes" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
+                                <td class="p-3 text-gray-400" x-text="m.fecha"></td>
+                                <td class="p-3 text-gray-300" x-text="m.componente_posicion || '—'"></td>
+                                <td class="p-3 text-gray-500 text-xs" x-text="m.componente_tipo || '—'"></td>
+                                <td class="p-3 font-mono font-bold text-center"
+                                    :class="m.espesor_mm <= {{ config.limite_freno_tambor_mm }} ? 'text-red-400' : 'text-gray-200'"
+                                    x-text="m.espesor_mm != null ? m.espesor_mm.toFixed(2) + ' mm' : '—'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Tabla cadenas -->
+                <table x-show="tipo === 'cadenas'" class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2 border-navy-700">
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Equipo</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Fecha</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs">Tipo Cadena</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Nominal</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Medida</th>
+                            <th class="text-left p-3 text-gray-500 uppercase tracking-wider text-xs text-center">Elongación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(m, i) in recientes" :key="i">
+                            <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
+                                <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
+                                <td class="p-3 text-gray-400" x-text="m.fecha"></td>
+                                <td class="p-3 text-gray-400 text-xs" x-text="m.tipo_cadena_display || m.tipo_cadena || '—'"></td>
+                                <td class="p-3 font-mono text-gray-500 text-center text-xs" x-text="m.longitud_nominal_mm ? m.longitud_nominal_mm.toFixed(1) + ' mm' : '—'"></td>
+                                <td class="p-3 font-mono text-gray-400 text-center text-xs" x-text="m.longitud_medida_mm ? m.longitud_medida_mm.toFixed(1) + ' mm' : '—'"></td>
+                                <td class="p-3 font-mono font-bold text-center"
+                                    :class="(m.elongacion_pct || 0) >= {{ config.limite_elongacion_cadena_pct }} ? 'text-red-400' : (m.elongacion_pct || 0) >= {{ config.umbral_alerta_cadena_pct }} ? 'text-yellow-400' : 'text-green-400'"
+                                    x-text="m.elongacion_pct != null ? m.elongacion_pct.toFixed(2) + '%' : '—'"></td>
                             </tr>
                         </template>
                     </tbody>
@@ -247,100 +444,327 @@
         x-text="toast?.msg"></div>
 </div>
 
+{# localize off: floats en JS deben usar punto decimal #}
+{% localize off %}
 <script>
-    function terreno() {
-        const today = new Date().toISOString().split('T')[0];
-        return {
-            tipo: 'traccion', recientes: [], toast: null,
-            tiposEquipo: [],
-            form: {
-                equipo_numero: '', tipo_equipo_codigo: '', marca_nombre: 'GOODYEAR', fecha: today, observaciones: '',
-                h1: '', h2: '', h3: '', h4: '', h5: '', h6: '', h7: '', h8: '', d1: '', d2: '',
-                horometro_motor: '', juego_radial: '', juego_axial: '', estado_visual: 'OK'
-            },
-            token() { return sessionStorage.getItem('tw_token'); },
-            headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
-            async init() {
-                await Promise.all([this.cargarRecientes(), this.cargarTipos()]);
-            },
-            async cargarTipos() {
-                try {
-                    const r = await fetch('/api/equipos/tipos/', { headers: this.headers() });
-                    const d = await r.json();
-                    this.tiposEquipo = d.results || d;
-                } catch(e) { console.error('Error cargando tipos:', e); }
-            },
+function terreno() {
+    const today = new Date().toISOString().split('T')[0];
+    return {
+        tipo: 'traccion',
+        recientes: [],
+        toast: null,
+        guardando: false,
+        tiposEquipo: [],
 
-            async cargarRecientes() {
-                let url = `/api/neumaticos/mediciones/?tipo=${this.tipo}&ordering=-fecha&page_size=10`;
+        // Formulario base compartido
+        form: {
+            equipo_numero: '', tipo_equipo_codigo: '', fecha: today, observaciones: '',
+            // Neumáticos
+            marca_nombre: 'GOODYEAR',
+            h1: '', h2: '', h3: '', h4: '', h5: '', h6: '', h7: '', h8: '',
+            d1: '', d2: '',
+            // Turbos
+            horometro_motor: '', juego_radial: '', juego_axial: '', estado_visual: 'OK',
+            // Frenos / Cadenas
+            horometro: '',
+        },
+
+        // Estado frenos
+        frenosComponentes: [],
+        frenosCargando: false,
+        frenosEspesores: {},
+
+        // Estado cadenas
+        cadenas: {
+            tipo_cadena: 'spreader_principal',
+            longitud_nominal_mm: '',
+            longitud_medida_mm: '',
+            num_eslabones: 12,
+        },
+
+        // Config límites (para color feedback)
+        limites: {
+            freno_tambor: {{ config.limite_freno_tambor_mm }},
+            freno_disco: {{ config.limite_freno_disco_mm }},
+            freno_tambor_aire: {{ config.limite_freno_tambor_aire_mm }},
+            cadena_limite: {{ config.limite_elongacion_cadena_pct }},
+            cadena_alerta: {{ config.umbral_alerta_cadena_pct }},
+        },
+
+        token() { return sessionStorage.getItem('tw_token'); },
+        hdrs() {
+            const csrf = document.cookie.match(/csrftoken=([^;]+)/);
+            return {
+                'Authorization': 'Token ' + this.token(),
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf ? csrf[1] : '',
+            };
+        },
+
+        async init() {
+            await Promise.all([this.cargarRecientes(), this.cargarTipos()]);
+        },
+
+        async cargarTipos() {
+            try {
+                const r = await fetch('/api/equipos/tipos/', { headers: this.hdrs() });
+                const d = await r.json();
+                this.tiposEquipo = d.results || d;
+            } catch(e) { console.error('Error tipos:', e); }
+        },
+
+        switchTab(t) {
+            this.tipo = t;
+            this.frenosComponentes = [];
+            this.frenosEspesores = {};
+            this.cargarRecientes();
+        },
+
+        async cargarRecientes() {
+            try {
+                let url = '';
                 if (this.tipo === 'turbos') {
-                    url = `/api/turbos/mediciones/?ordering=-fecha&page_size=10`;
-                }
-                const res = await fetch(url, { headers: this.headers() });
-                const data = await res.json();
-                this.recientes = data.results || [];
-            },
-
-            showToast(msg, type = 'success') {
-                this.toast = { msg, type };
-                setTimeout(() => this.toast = null, 3500);
-            },
-
-            async guardar() {
-                const num = parseInt(this.form.equipo_numero);
-                if (!num || num <= 0) { this.showToast('Ingrese un número de equipo válido', 'error'); return; }
-
-                let payload = {};
-                let endpoint = '';
-
-                if (this.tipo === 'turbos') {
-                    if (!this.form.horometro_motor || !this.form.juego_radial || !this.form.juego_axial) {
-                        this.showToast('Horómetro y mediciones son obligatorios', 'error'); return;
-                    }
-                    payload = {
-                        equipo_numero: num,
-                        tipo_equipo_codigo: this.form.tipo_equipo_codigo,
-                        fecha: this.form.fecha,
-                        horometro_motor: parseInt(this.form.horometro_motor),
-                        juego_radial: parseFloat(this.form.juego_radial),
-                        juego_axial: parseFloat(this.form.juego_axial),
-                        estado_visual: this.form.estado_visual,
-                        observaciones: this.form.observaciones
-                    };
-                    endpoint = '/api/turbos/mediciones/';
+                    url = '/api/turbos/mediciones/?ordering=-fecha&page_size=10';
+                } else if (this.tipo === 'frenos') {
+                    url = '/api/frenos/mediciones/?ordering=-fecha&page_size=10';
+                } else if (this.tipo === 'cadenas') {
+                    url = '/api/cadenas/mediciones/?ordering=-fecha&page_size=10';
                 } else {
-                    payload = {
-                        equipo_numero: num, tipo_equipo_codigo: this.form.tipo_equipo_codigo,
-                        marca_nombre: this.form.marca_nombre,
-                        fecha: this.form.fecha, tipo: this.tipo
-                    };
-                    const posiciones = this.tipo === 'traccion' ? ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'] : ['d1', 'd2'];
-                    posiciones.forEach(p => { const v = parseFloat(this.form[p]); if (!isNaN(v) && v > 0) payload[p] = v; });
-                    if (this.form.observaciones) payload.observaciones = this.form.observaciones;
-                    endpoint = '/api/neumaticos/mediciones/';
+                    url = `/api/neumaticos/mediciones/?tipo=${this.tipo}&ordering=-fecha&page_size=10`;
                 }
+                const r = await fetch(url, { headers: this.hdrs() });
+                const d = await r.json();
+                this.recientes = d.results || d;
+            } catch(e) { console.error('Error recientes:', e); }
+        },
 
-                try {
-                    const res = await fetch(endpoint, { method: 'POST', headers: this.headers(), body: JSON.stringify(payload) });
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.equipo_numero?.[0] || err.detail || 'Error al guardar (revise duplicidad en fecha/horómetro)');
-                    }
-                    const lbl = this.form.tipo_equipo_codigo ? this.form.tipo_equipo_codigo + '-' + num : String(num);
-                    this.showToast(`Medición guardada para Equipo ${lbl}`);
+        showToast(msg, type = 'success') {
+            this.toast = { msg, type };
+            setTimeout(() => this.toast = null, 4000);
+        },
+
+        limiteFreno(tipo_freno) {
+            if (tipo_freno === 'disco') return this.limites.freno_disco;
+            if (tipo_freno === 'tambor_aire') return this.limites.freno_tambor_aire;
+            return this.limites.freno_tambor;
+        },
+
+        elongacionPct() {
+            const n = parseFloat(this.cadenas.longitud_nominal_mm);
+            const m = parseFloat(this.cadenas.longitud_medida_mm);
+            if (!n || !m) return 0;
+            return ((m - n) / n) * 100;
+        },
+
+        async buscarComponentesFrenos() {
+            if (!this.form.tipo_equipo_codigo || !this.form.equipo_numero) {
+                this.showToast('Selecciona el tipo e ingresa el número de equipo', 'error');
+                return;
+            }
+            this.frenosCargando = true;
+            this.frenosComponentes = [];
+            this.frenosEspesores = {};
+            try {
+                const tipoObj = this.tiposEquipo.find(t => t.codigo === this.form.tipo_equipo_codigo);
+                if (!tipoObj) { this.showToast('Tipo de equipo no reconocido', 'error'); return; }
+
+                const rEq = await fetch(`/api/equipos/?tipo=${tipoObj.id}&numero=${this.form.equipo_numero}`, { headers: this.hdrs() });
+                const dEq = await rEq.json();
+                const equipos = dEq.results || dEq;
+                if (!equipos.length) {
+                    this.showToast(`No se encontró ${this.form.tipo_equipo_codigo}-${this.form.equipo_numero}`, 'error');
+                    return;
+                }
+                const equipoId = equipos[0].id;
+
+                const rComp = await fetch(`/api/frenos/componentes/?equipo=${equipoId}&activo=true`, { headers: this.hdrs() });
+                const dComp = await rComp.json();
+                this.frenosComponentes = dComp.results || dComp;
+
+                if (!this.frenosComponentes.length) {
+                    this.showToast(`${this.form.tipo_equipo_codigo}-${this.form.equipo_numero} no tiene frenos registrados. Ve a Frenos → Registrar Componente.`, 'error');
+                    return;
+                }
+                this.frenosComponentes.forEach(c => {
+                    this.frenosEspesores[c.id] = c.espesor_actual_mm || '';
+                });
+                this.showToast(`${this.frenosComponentes.length} posición(es) cargadas`);
+            } catch(e) {
+                this.showToast('Error: ' + e.message, 'error');
+            } finally {
+                this.frenosCargando = false;
+            }
+        },
+
+        async guardar() {
+            if (this.tipo === 'frenos') return await this.guardarFrenos();
+            if (this.tipo === 'cadenas') return await this.guardarCadenas();
+            return await this.guardarNeumaticosOTurbos();
+        },
+
+        async guardarFrenos() {
+            if (!this.frenosComponentes.length) {
+                this.showToast('Carga primero los frenos del equipo', 'error');
+                return;
+            }
+            const promesas = [];
+            for (const c of this.frenosComponentes) {
+                const esp = this.frenosEspesores[c.id];
+                if (!esp && esp !== 0) continue;
+                promesas.push(fetch('/api/frenos/mediciones/', {
+                    method: 'POST',
+                    headers: this.hdrs(),
+                    body: JSON.stringify({
+                        componente: c.id,
+                        equipo: c.equipo,
+                        fecha: this.form.fecha,
+                        horometro: this.form.horometro ? parseFloat(this.form.horometro) : null,
+                        espesor_mm: parseFloat(esp),
+                        observaciones: this.form.observaciones,
+                    })
+                }));
+            }
+            if (!promesas.length) {
+                this.showToast('Ingresa al menos un espesor', 'error');
+                return;
+            }
+            this.guardando = true;
+            try {
+                const resultados = await Promise.all(promesas);
+                const errores = resultados.filter(r => !r.ok);
+                if (errores.length) {
+                    const err = await errores[0].json();
+                    this.showToast(JSON.stringify(err), 'error');
+                } else {
+                    this.showToast(`✅ ${promesas.length} medición(es) de freno guardadas — ${this.form.tipo_equipo_codigo}-${this.form.equipo_numero}`);
+                    this.frenosComponentes = [];
+                    this.frenosEspesores = {};
                     this.limpiarFormulario();
                     this.cargarRecientes();
-                } catch (e) { this.showToast(e.message, 'error'); }
-            },
-
-            limpiarFormulario() {
-                ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'd1', 'd2', 'juego_radial', 'juego_axial', 'horometro_motor'].forEach(p => this.form[p] = '');
-                this.form.equipo_numero = '';
-                this.form.tipo_equipo_codigo = '';
-                this.form.observaciones = '';
-                this.form.estado_visual = 'OK';
+                }
+            } catch(e) {
+                this.showToast('Error: ' + e.message, 'error');
+            } finally {
+                this.guardando = false;
             }
-        }
+        },
+
+        async guardarCadenas() {
+            const num = parseInt(this.form.equipo_numero);
+            if (!num || !this.form.tipo_equipo_codigo) {
+                this.showToast('Selecciona tipo e ingresa número de equipo', 'error');
+                return;
+            }
+            if (!this.cadenas.longitud_nominal_mm || !this.cadenas.longitud_medida_mm) {
+                this.showToast('Ingresa longitud nominal y medida', 'error');
+                return;
+            }
+            this.guardando = true;
+            try {
+                const tipoObj = this.tiposEquipo.find(t => t.codigo === this.form.tipo_equipo_codigo);
+                const rEq = await fetch(`/api/equipos/?tipo=${tipoObj.id}&numero=${num}`, { headers: this.hdrs() });
+                const dEq = await rEq.json();
+                const equipos = dEq.results || dEq;
+                if (!equipos.length) {
+                    this.showToast(`No se encontró ${this.form.tipo_equipo_codigo}-${num}`, 'error');
+                    return;
+                }
+                const r = await fetch('/api/cadenas/mediciones/', {
+                    method: 'POST',
+                    headers: this.hdrs(),
+                    body: JSON.stringify({
+                        equipo: equipos[0].id,
+                        fecha: this.form.fecha,
+                        horometro: this.form.horometro ? parseFloat(this.form.horometro) : null,
+                        tipo_cadena: this.cadenas.tipo_cadena,
+                        longitud_nominal_mm: parseFloat(this.cadenas.longitud_nominal_mm),
+                        longitud_medida_mm: parseFloat(this.cadenas.longitud_medida_mm),
+                        num_eslabones: parseInt(this.cadenas.num_eslabones) || 12,
+                        observaciones: this.form.observaciones,
+                    })
+                });
+                if (!r.ok) {
+                    const err = await r.json();
+                    this.showToast(JSON.stringify(err), 'error');
+                } else {
+                    this.showToast(`✅ Cadena guardada — ${this.form.tipo_equipo_codigo}-${num}`);
+                    this.cadenas = { tipo_cadena: 'spreader_principal', longitud_nominal_mm: '', longitud_medida_mm: '', num_eslabones: 12 };
+                    this.limpiarFormulario();
+                    this.cargarRecientes();
+                }
+            } catch(e) {
+                this.showToast('Error: ' + e.message, 'error');
+            } finally {
+                this.guardando = false;
+            }
+        },
+
+        async guardarNeumaticosOTurbos() {
+            const num = parseInt(this.form.equipo_numero);
+            if (!num || num <= 0) { this.showToast('Ingresa un número de equipo válido', 'error'); return; }
+
+            let payload = {};
+            let endpoint = '';
+
+            if (this.tipo === 'turbos') {
+                if (!this.form.horometro_motor || !this.form.juego_radial || !this.form.juego_axial) {
+                    this.showToast('Horómetro y mediciones son obligatorios', 'error'); return;
+                }
+                payload = {
+                    equipo_numero: num,
+                    tipo_equipo_codigo: this.form.tipo_equipo_codigo,
+                    fecha: this.form.fecha,
+                    horometro_motor: parseInt(this.form.horometro_motor),
+                    juego_radial: parseFloat(this.form.juego_radial),
+                    juego_axial: parseFloat(this.form.juego_axial),
+                    estado_visual: this.form.estado_visual,
+                    observaciones: this.form.observaciones,
+                };
+                endpoint = '/api/turbos/mediciones/';
+            } else {
+                payload = {
+                    equipo_numero: num,
+                    tipo_equipo_codigo: this.form.tipo_equipo_codigo,
+                    marca_nombre: this.form.marca_nombre,
+                    fecha: this.form.fecha,
+                    tipo: this.tipo,
+                };
+                const posiciones = this.tipo === 'traccion'
+                    ? ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8']
+                    : ['d1', 'd2'];
+                posiciones.forEach(p => { const v = parseFloat(this.form[p]); if (!isNaN(v) && v > 0) payload[p] = v; });
+                if (this.form.observaciones) payload.observaciones = this.form.observaciones;
+                endpoint = '/api/neumaticos/mediciones/';
+            }
+
+            this.guardando = true;
+            try {
+                const res = await fetch(endpoint, { method: 'POST', headers: this.hdrs(), body: JSON.stringify(payload) });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.equipo_numero?.[0] || err.detail || 'Error al guardar');
+                }
+                const lbl = this.form.tipo_equipo_codigo ? this.form.tipo_equipo_codigo + '-' + num : String(num);
+                this.showToast(`✅ Medición guardada — ${lbl}`);
+                this.limpiarFormulario();
+                this.cargarRecientes();
+            } catch (e) {
+                this.showToast(e.message, 'error');
+            } finally {
+                this.guardando = false;
+            }
+        },
+
+        limpiarFormulario() {
+            ['h1','h2','h3','h4','h5','h6','h7','h8','d1','d2','juego_radial','juego_axial','horometro_motor','horometro']
+                .forEach(p => this.form[p] = '');
+            this.form.equipo_numero = '';
+            this.form.tipo_equipo_codigo = '';
+            this.form.observaciones = '';
+            this.form.estado_visual = 'OK';
+        },
     }
+}
 </script>
+{% endlocalize %}
 {% endblock %}

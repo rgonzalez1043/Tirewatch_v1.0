@@ -59,7 +59,8 @@ def importar(request):
 
 @login_required(login_url="/login/")
 def terreno(request):
-    return render(request, "web/terreno.html")
+    config = ConfiguracionSistema.load()
+    return render(request, "web/terreno.html", {"config": config})
 
 
 @login_required(login_url="/login/")
