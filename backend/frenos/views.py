@@ -136,21 +136,23 @@ class ProyeccionFrenoViewSet(viewsets.ReadOnlyModelViewSet):
 
         equipos_dict = {}
         for p in proyecciones:
-            eq_num = p.equipo.numero
-            if eq_num not in equipos_dict:
-                equipos_dict[eq_num] = {
+            eq_key = p.equipo.id  # PK único — evita colisión entre tipos con mismo número
+            if eq_key not in equipos_dict:
+                equipos_dict[eq_key] = {
                     "equipo_id": p.equipo.id,
-                    "equipo_numero": eq_num,
+                    "equipo_numero": p.equipo.numero,
+                    "equipo_tipo_codigo": p.equipo.tipo.codigo,
+                    "equipo_codigo_completo": p.equipo.codigo_completo,
                     "estado_global": "OK",
                     "componentes": [],
                 }
-            equipos_dict[eq_num]["componentes"].append(ProyeccionFrenoSerializer(p).data)
+            equipos_dict[eq_key]["componentes"].append(ProyeccionFrenoSerializer(p).data)
 
             # Estado global = el peor de todos los componentes
             PRIORIDAD = {"CRITICO": 2, "ATENCION": 1, "OK": 0}
-            actual = equipos_dict[eq_num]["estado_global"]
+            actual = equipos_dict[eq_key]["estado_global"]
             if PRIORIDAD.get(p.estado, 0) > PRIORIDAD.get(actual, 0):
-                equipos_dict[eq_num]["estado_global"] = p.estado
+                equipos_dict[eq_key]["estado_global"] = p.estado
 
         return Response({
             "equipos": list(equipos_dict.values()),

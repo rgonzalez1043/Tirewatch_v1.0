@@ -27,11 +27,12 @@ class EquipoSerializer(serializers.ModelSerializer):
     tipo_nombre = serializers.CharField(source="tipo.nombre", read_only=True)
     tipo_codigo = serializers.CharField(source="tipo.codigo", read_only=True)
     estado_display = serializers.CharField(source="get_estado_display", read_only=True)
+    codigo_completo = serializers.CharField(read_only=True)
 
     class Meta:
         model = Equipo
         fields = [
-            "id", "numero", "tipo", "tipo_nombre", "tipo_codigo",
+            "id", "numero", "codigo_completo", "tipo", "tipo_nombre", "tipo_codigo",
             "nombre", "estado", "estado_display",
             "horometro_actual", "horas_operacion_diaria",
             "fecha_registro", "notas",
@@ -40,6 +41,9 @@ class EquipoSerializer(serializers.ModelSerializer):
 
 class EquipoResumenSerializer(serializers.ModelSerializer):
     """Serializer ligero para listas y selects"""
+    tipo_codigo = serializers.CharField(source="tipo.codigo", read_only=True)
+    codigo_completo = serializers.CharField(read_only=True)
+
     class Meta:
         model = Equipo
-        fields = ["id", "numero", "nombre", "estado"]
+        fields = ["id", "numero", "codigo_completo", "tipo_codigo", "nombre", "estado"]

@@ -25,12 +25,15 @@ class MedicionCadenaSerializer(serializers.ModelSerializer):
 
 class ProyeccionCadenaSerializer(serializers.ModelSerializer):
     equipo_numero = serializers.IntegerField(source="equipo.numero", read_only=True)
+    equipo_tipo_codigo = serializers.CharField(source="equipo.tipo.codigo", read_only=True)
     equipo_tipo = serializers.CharField(source="equipo.tipo.nombre", read_only=True)
+    equipo_codigo_completo = serializers.CharField(source="equipo.codigo_completo", read_only=True)
 
     class Meta:
         model = ProyeccionCadena
         fields = [
-            "id", "equipo", "equipo_numero", "equipo_tipo",
+            "id", "equipo", "equipo_numero", "equipo_tipo_codigo", "equipo_tipo",
+            "equipo_codigo_completo",
             "tipo_cadena",
             "elongacion_actual_pct", "longitud_nominal_mm", "longitud_actual_mm",
             "tasa_elongacion_pct_1000h", "horas_restantes",

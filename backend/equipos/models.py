@@ -56,7 +56,7 @@ class Equipo(models.Model):
         ("fuera_servicio", "Fuera de Servicio"),
     ]
 
-    numero = models.IntegerField(unique=True, help_text="Número identificador del equipo")
+    numero = models.IntegerField(help_text="Número identificador del equipo (único dentro del tipo)")
     tipo = models.ForeignKey(TipoEquipo, on_delete=models.PROTECT, related_name="equipos")
     nombre = models.CharField(max_length=100, blank=True)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="operativo")
@@ -71,7 +71,12 @@ class Equipo(models.Model):
     class Meta:
         verbose_name = "Equipo"
         verbose_name_plural = "Equipos"
-        ordering = ["numero"]
+        ordering = ["tipo__codigo", "numero"]
+        unique_together = [("numero", "tipo")]
 
     def __str__(self):
-        return f"Equipo {self.numero} ({self.tipo.codigo})"
+        return f"{self.tipo.codigo}-{self.numero}"
+
+    @property
+    def codigo_completo(self):
+        return f"{self.tipo.codigo}-{self.numero}"

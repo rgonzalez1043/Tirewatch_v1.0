@@ -10,8 +10,8 @@ class EquipoViewSet(viewsets.ModelViewSet):
     """CRUD de Equipos"""
     queryset = Equipo.objects.select_related("tipo").all()
     serializer_class = EquipoSerializer
-    filterset_fields = ["tipo", "estado"]
-    search_fields = ["numero", "nombre"]
+    filterset_fields = ["tipo", "estado", "numero"]
+    search_fields = ["nombre"]
     ordering_fields = ["numero", "estado", "fecha_registro"]
 
 
