@@ -244,10 +244,50 @@ function frenosDashboard() {
       }
     },
 
+    // ── Posiciones válidas por tipo de equipo ─────────
+    posicionesParaTipo(tipoCodigo) {
+      const todas = [
+        { v: 'del_izq',     l: 'Delantero Izquierdo' },
+        { v: 'del_der',     l: 'Delantero Derecho' },
+        { v: 'tras_izq',    l: 'Trasero Izquierdo' },
+        { v: 'tras_der',    l: 'Trasero Derecho' },
+        { v: 'tras_izq_int',l: 'Trasero Izq. Interior' },
+        { v: 'tras_der_int',l: 'Trasero Der. Interior' },
+        { v: 'chasis_izq',  l: 'Chasis Izquierdo' },
+        { v: 'chasis_der',  l: 'Chasis Derecho' },
+        { v: 'medio_izq',   l: 'Medio Izquierdo' },
+        { v: 'medio_der',   l: 'Medio Derecho' },
+      ];
+      // CHA: solo eje trasero (neumáticos y frenos de chasis)
+      if (tipoCodigo === 'CHA') return todas.filter(p => p.v.startsWith('tras_'));
+      // TETR: ejes delantero y trasero
+      if (tipoCodigo === 'TETR') return todas.filter(p => p.v.startsWith('del_') || p.v.startsWith('tras_'));
+      // GPCO: todas
+      return todas;
+    },
+
+    onChangeTipoEquipoComp() {
+      const t = this.tiposEquipo.find(t => t.id == this.compForm.tipo_id);
+      if (!t) return;
+      const posiciones = this.posicionesParaTipo(t.codigo);
+      this.compForm.posicion = posiciones[0]?.v || 'tras_izq';
+      // Auto-sugerir tipo de freno y espesor de fábrica según equipo
+      if (t.codigo === 'CHA') {
+        this.compForm.tipo_freno = 'tambor_aire';
+        this.compForm.espesor_fabrica_mm = '20.0';
+      } else if (t.codigo === 'TETR') {
+        this.compForm.tipo_freno = 'tambor';
+        this.compForm.espesor_fabrica_mm = '20.0';
+      } else { // GPCO — Konecranes usa disco húmedo
+        this.compForm.tipo_freno = 'disco';
+        this.compForm.espesor_fabrica_mm = '15.0';
+      }
+    },
+
     // ── MODAL: Registrar Componente ────────────────────
     abrirModalComponente() {
       this.compForm = {
-        equipo_id: '', tipo_id: '', posicion: 'del_izq', tipo_freno: 'disco',
+        equipo_id: '', tipo_id: '', posicion: 'tras_izq', tipo_freno: 'tambor',
         espesor_fabrica_mm: '', fecha_instalacion: new Date().toISOString().slice(0,10),
         horometro_instalacion: '', notas: ''
       };
@@ -846,10 +886,11 @@ function frenosDashboard() {
         <div class="space-y-1.5">
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Equipo</label>
           <select x-model="compForm.tipo_id" id="comp-tipo-equipo"
+            @change="onChangeTipoEquipoComp()"
             class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
             <option value="">— Tipo —</option>
             <template x-for="t in tiposEquipo" :key="t.id">
-              <option :value="t.id" x-text="t.codigo"></option>
+              <option :value="t.id" x-text="t.codigo + ' — ' + t.nombre"></option>
             </template>
           </select>
         </div>
@@ -863,17 +904,12 @@ function frenosDashboard() {
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Posición del Freno</label>
           <select x-model="compForm.posicion" id="comp-posicion"
             class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-            <option value="del_izq">Delantero Izquierdo</option>
-            <option value="del_der">Delantero Derecho</option>
-            <option value="tras_izq">Trasero Izquierdo</option>
-            <option value="tras_der">Trasero Derecho</option>
-            <option value="tras_izq_int">Trasero Izq. Interior</option>
-            <option value="tras_der_int">Trasero Der. Interior</option>
-            <option value="chasis_izq">Chasis Izquierdo</option>
-            <option value="chasis_der">Chasis Derecho</option>
-            <option value="medio_izq">Medio Izquierdo</option>
-            <option value="medio_der">Medio Derecho</option>
+            <template x-for="p in posicionesParaTipo(tiposEquipo.find(t => t.id == compForm.tipo_id)?.codigo)"
+                      :key="p.v">
+              <option :value="p.v" x-text="p.l"></option>
+            </template>
           </select>
+          <p x-show="!compForm.tipo_id" class="text-[10px] text-gray-600 mt-1">Selecciona el tipo de equipo primero.</p>
         </div>
       </div>
 
@@ -882,16 +918,28 @@ function frenosDashboard() {
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Freno</label>
           <select x-model="compForm.tipo_freno" id="comp-tipo"
             class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
-            <option value="disco">Disco (pastilla)</option>
-            <option value="tambor">Tambor (balata)</option>
-            <option value="tambor_aire">Tambor de Aire (balata)</option>
+            <option value="disco">Disco — Konecranes GPCO (pastilla húmeda)</option>
+            <option value="tambor">Tambor — TETR / GPCO (balata seca)</option>
+            <option value="tambor_aire">Tambor de Aire — CHA (eje chasis)</option>
           </select>
+          <!-- Indicador del tipo sugerido -->
+          <p class="text-[10px] mt-1"
+            :class="{
+              'text-blue-400': compForm.tipo_freno === 'disco',
+              'text-orange-400': compForm.tipo_freno === 'tambor',
+              'text-purple-400': compForm.tipo_freno === 'tambor_aire'
+            }"
+            x-text="{
+              disco: '🔵 Disco húmedo — Konecranes RST. Límite: ' + config.limite_disco_mm + ' mm',
+              tambor: '🟠 Tambor — Kalmar T2 / Terberg. Límite: ' + config.limite_mm + ' mm',
+              tambor_aire: '🟣 Tambor de aire — Chasis. Límite: ' + config.limite_tambor_aire_mm + ' mm'
+            }[compForm.tipo_freno]"></p>
         </div>
         <div class="space-y-1.5">
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Espesor al Instalar (mm)</label>
           <input x-model="compForm.espesor_fabrica_mm" type="number" step="0.1" min="1" id="comp-espesor"
             class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
-            placeholder="Ej: 20.0" />
+            :placeholder="compForm.tipo_freno === 'disco' ? 'Ej: 15.0 (GPCO)' : 'Ej: 20.0 (TETR/CHA)'" />
         </div>
       </div>
 

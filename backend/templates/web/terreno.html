@@ -52,10 +52,13 @@
                 <select x-model="form.tipo_equipo_codigo" @change="frenosComponentes = []; frenosEspesores = {}"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
                     <option value="">— Tipo —</option>
-                    <template x-for="t in tiposEquipo" :key="t.id">
+                    <template x-for="t in tiposDisponibles()" :key="t.id">
                         <option :value="t.codigo" x-text="t.codigo + ' — ' + t.nombre"></option>
                     </template>
                 </select>
+                <!-- Advertencia cadenas solo GPCO -->
+                <p x-show="tipo === 'cadenas' && form.tipo_equipo_codigo && form.tipo_equipo_codigo !== 'GPCO'"
+                   class="text-[10px] text-red-400 mt-1">⚠️ Las cadenas solo aplican a equipos GPCO (Taylor).</p>
             </div>
             <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">N° Equipo</label>
@@ -543,6 +546,12 @@ function terreno() {
             setTimeout(() => this.toast = null, 4000);
         },
 
+        // Solo GPCO, TETR, CHA — equipos móviles de terreno
+        tiposDisponibles() {
+            if (this.tipo === 'cadenas') return this.tiposEquipo.filter(t => t.codigo === 'GPCO');
+            return this.tiposEquipo.filter(t => ['GPCO', 'TETR', 'CHA'].includes(t.codigo));
+        },
+
         limiteFreno(tipo_freno) {
             if (tipo_freno === 'disco') return this.limites.freno_disco;
             if (tipo_freno === 'tambor_aire') return this.limites.freno_tambor_aire;
@@ -653,6 +662,10 @@ function terreno() {
             const num = parseInt(this.form.equipo_numero);
             if (!num || !this.form.tipo_equipo_codigo) {
                 this.showToast('Selecciona tipo e ingresa número de equipo', 'error');
+                return;
+            }
+            if (this.form.tipo_equipo_codigo !== 'GPCO') {
+                this.showToast('Las cadenas solo aplican a equipos GPCO (Taylor). Los TETR y CHA no usan cadenas.', 'error');
                 return;
             }
             if (!this.cadenas.longitud_nominal_mm || !this.cadenas.longitud_medida_mm) {

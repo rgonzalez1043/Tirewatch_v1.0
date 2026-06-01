@@ -174,10 +174,11 @@
           <select x-model="form.tipo_id" id="cadena-tipo-equipo" required
             class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500">
             <option value="">— Tipo —</option>
-            <template x-for="t in tiposEquipo" :key="t.id">
-              <option :value="t.id" x-text="t.codigo"></option>
+            <template x-for="t in tiposEquipo.filter(t => t.codigo === 'GPCO')" :key="t.id">
+              <option :value="t.id" x-text="t.codigo + ' — ' + t.nombre"></option>
             </template>
           </select>
+          <p class="text-[10px] text-yellow-600 mt-0.5">Solo aplica a portacontenedoras GPCO (Taylor).</p>
         </div>
         <div class="space-y-1">
           <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">N° Equipo</label>
