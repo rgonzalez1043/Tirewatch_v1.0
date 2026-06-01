@@ -4,6 +4,8 @@ from .models import Medicion, TasaDesgaste, Proyeccion, Neumatico
 
 class MedicionSerializer(serializers.ModelSerializer):
     equipo_numero = serializers.IntegerField(source="equipo.numero", read_only=True)
+    equipo_tipo_codigo = serializers.CharField(source="equipo.tipo.codigo", read_only=True)
+    equipo_codigo_completo = serializers.CharField(source="equipo.codigo_completo", read_only=True)
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     posiciones = serializers.DictField(read_only=True)
     registrado_por_nombre = serializers.CharField(
@@ -13,7 +15,8 @@ class MedicionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicion
         fields = [
-            "id", "equipo", "equipo_numero", "fecha", "tipo", "tipo_display",
+            "id", "equipo", "equipo_numero", "equipo_tipo_codigo", "equipo_codigo_completo",
+            "fecha", "tipo", "tipo_display",
             "marca_nombre",
             "h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8",
             "d1", "d2",
@@ -28,27 +31,38 @@ class MedicionSerializer(serializers.ModelSerializer):
 class MedicionCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear mediciones desde terreno"""
     equipo_numero = serializers.IntegerField(write_only=True)
+    tipo_equipo_codigo = serializers.CharField(write_only=True, required=False, allow_blank=True, default='')
 
     class Meta:
         model = Medicion
         fields = [
-            "equipo_numero", "fecha", "tipo", "marca_nombre",
+            "equipo_numero", "tipo_equipo_codigo",
+            "fecha", "tipo", "marca_nombre",
             "h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8",
             "d1", "d2",
             "horometro", "observaciones",
         ]
 
-    def validate_equipo_numero(self, value):
+    def validate(self, data):
         from equipos.models import Equipo
+        numero = data.pop("equipo_numero")
+        tipo_codigo = data.pop("tipo_equipo_codigo", "")
         try:
-            return Equipo.objects.get(numero=value)
+            if tipo_codigo:
+                data["_equipo"] = Equipo.objects.get(numero=numero, tipo__codigo=tipo_codigo)
+            else:
+                data["_equipo"] = Equipo.objects.get(numero=numero)
         except Equipo.DoesNotExist:
-            raise serializers.ValidationError(
-                f"No existe equipo con número {value}"
-            )
+            lbl = f"{tipo_codigo}-{numero}" if tipo_codigo else str(numero)
+            raise serializers.ValidationError({"equipo_numero": [f"No existe equipo {lbl}"]})
+        except Equipo.MultipleObjectsReturned:
+            raise serializers.ValidationError({
+                "equipo_numero": [f"Hay varios equipos con número {numero}. Especifica el tipo (GPCO, TETR, CHA…)"]
+            })
+        return data
 
     def create(self, validated_data):
-        equipo = validated_data.pop("equipo_numero")
+        equipo = validated_data.pop("_equipo")
         validated_data["equipo"] = equipo
         validated_data["origen"] = "terreno"
         validated_data["registrado_por"] = self.context["request"].user
@@ -68,12 +82,14 @@ class TasaDesgasteSerializer(serializers.ModelSerializer):
 
 class ProyeccionSerializer(serializers.ModelSerializer):
     equipo_numero = serializers.IntegerField(source="equipo.numero", read_only=True)
+    equipo_tipo_codigo = serializers.CharField(source="equipo.tipo.codigo", read_only=True)
+    equipo_codigo_completo = serializers.CharField(source="equipo.codigo_completo", read_only=True)
     estado = serializers.CharField(read_only=True)
 
     class Meta:
         model = Proyeccion
         fields = [
-            "id", "equipo", "equipo_numero", "tipo",
+            "id", "equipo", "equipo_numero", "equipo_tipo_codigo", "equipo_codigo_completo", "tipo",
             "marca_nombre", "posicion_critica", "valor_actual_mm",
             "horas_restantes", "fecha_cambio_estimada",
             "fecha_ultima_medicion", "estado", "calculado_en",

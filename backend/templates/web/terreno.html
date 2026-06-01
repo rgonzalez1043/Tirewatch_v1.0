@@ -44,6 +44,16 @@
         <!-- Campos Base -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div>
+                <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Tipo Equipo</label>
+                <select x-model="form.tipo_equipo_codigo"
+                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
+                    <option value="">— Tipo —</option>
+                    <template x-for="t in tiposEquipo" :key="t.id">
+                        <option :value="t.codigo" x-text="t.codigo + ' — ' + t.nombre"></option>
+                    </template>
+                </select>
+            </div>
+            <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">N° Equipo</label>
                 <input type="number" x-model="form.equipo_numero"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
@@ -174,7 +184,7 @@
                     <tbody>
                         <template x-for="(m, i) in recientes" :key="i">
                             <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
-                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + m.equipo_numero"></td>
+                                <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
                                 <td class="p-3" x-text="m.fecha"></td>
                                 <td class="p-3" x-text="m.marca_nombre"></td>
                                 <td class="p-3 font-mono text-blue-400 font-bold"
@@ -206,7 +216,7 @@
                     <tbody>
                         <template x-for="(m, i) in recientes" :key="i">
                             <tr class="border-b border-navy-700/50 hover:bg-navy-900 transition-colors">
-                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + m.equipo_numero"></td>
+                                <td class="p-3 font-bold text-gray-200" x-text="m.equipo_codigo_completo || m.equipo_numero"></td>
                                 <td class="p-3" x-text="m.fecha"></td>
                                 <td class="p-3 font-mono text-gray-300" x-text="(m.horometro_motor || '—') + ' hrs'"></td>
                                 <td class="p-3 font-mono font-bold text-purple-400 text-center" x-text="m.juego_radial != null ? m.juego_radial.toFixed(4) : '—'"></td>
@@ -242,14 +252,24 @@
         const today = new Date().toISOString().split('T')[0];
         return {
             tipo: 'traccion', recientes: [], toast: null,
+            tiposEquipo: [],
             form: {
-                equipo_numero: '', marca_nombre: 'GOODYEAR', fecha: today, observaciones: '',
+                equipo_numero: '', tipo_equipo_codigo: '', marca_nombre: 'GOODYEAR', fecha: today, observaciones: '',
                 h1: '', h2: '', h3: '', h4: '', h5: '', h6: '', h7: '', h8: '', d1: '', d2: '',
                 horometro_motor: '', juego_radial: '', juego_axial: '', estado_visual: 'OK'
             },
             token() { return sessionStorage.getItem('tw_token'); },
             headers() { return { 'Authorization': 'Token ' + this.token(), 'Content-Type': 'application/json' }; },
-            async init() { this.cargarRecientes(); },
+            async init() {
+                await Promise.all([this.cargarRecientes(), this.cargarTipos()]);
+            },
+            async cargarTipos() {
+                try {
+                    const r = await fetch('/api/equipos/tipos/', { headers: this.headers() });
+                    const d = await r.json();
+                    this.tiposEquipo = d.results || d;
+                } catch(e) { console.error('Error cargando tipos:', e); }
+            },
 
             async cargarRecientes() {
                 let url = `/api/neumaticos/mediciones/?tipo=${this.tipo}&ordering=-fecha&page_size=10`;
@@ -279,6 +299,7 @@
                     }
                     payload = {
                         equipo_numero: num,
+                        tipo_equipo_codigo: this.form.tipo_equipo_codigo,
                         fecha: this.form.fecha,
                         horometro_motor: parseInt(this.form.horometro_motor),
                         juego_radial: parseFloat(this.form.juego_radial),
@@ -289,7 +310,8 @@
                     endpoint = '/api/turbos/mediciones/';
                 } else {
                     payload = {
-                        equipo_numero: num, marca_nombre: this.form.marca_nombre,
+                        equipo_numero: num, tipo_equipo_codigo: this.form.tipo_equipo_codigo,
+                        marca_nombre: this.form.marca_nombre,
                         fecha: this.form.fecha, tipo: this.tipo
                     };
                     const posiciones = this.tipo === 'traccion' ? ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8'] : ['d1', 'd2'];
@@ -304,7 +326,8 @@
                         const err = await res.json();
                         throw new Error(err.equipo_numero?.[0] || err.detail || 'Error al guardar (revise duplicidad en fecha/horómetro)');
                     }
-                    this.showToast(`Medición guardada para Equipo GPCO-${num}`);
+                    const lbl = this.form.tipo_equipo_codigo ? this.form.tipo_equipo_codigo + '-' + num : String(num);
+                    this.showToast(`Medición guardada para Equipo ${lbl}`);
                     this.limpiarFormulario();
                     this.cargarRecientes();
                 } catch (e) { this.showToast(e.message, 'error'); }
@@ -313,6 +336,7 @@
             limpiarFormulario() {
                 ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8', 'd1', 'd2', 'juego_radial', 'juego_axial', 'horometro_motor'].forEach(p => this.form[p] = '');
                 this.form.equipo_numero = '';
+                this.form.tipo_equipo_codigo = '';
                 this.form.observaciones = '';
                 this.form.estado_visual = 'OK';
             }

@@ -91,7 +91,7 @@
           <tbody>
             <template x-for="p in proyecciones" :key="p.id">
               <tr class="border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors">
-                <td class="px-4 py-3 font-bold font-mono text-gray-200" x-text="'GPCO-' + p.equipo_numero"></td>
+                <td class="px-4 py-3 font-bold font-mono text-gray-200" x-text="p.equipo_codigo_completo || (p.equipo_tipo_codigo + '-' + p.equipo_numero)"></td>
                 <td class="px-4 py-3 text-gray-400 text-xs" x-text="p.tipo_cadena || '—'"></td>
                 <td class="px-4 py-3 font-mono font-bold">
                   <!-- Barra de progreso de elongación -->
@@ -168,9 +168,19 @@
     </div>
 
     <form @submit.prevent="guardarMedicion()" class="p-6 space-y-4">
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-3 gap-3">
         <div class="space-y-1">
-          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipo (N°)</label>
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo Equipo</label>
+          <select x-model="form.tipo_id" id="cadena-tipo-equipo" required
+            class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500">
+            <option value="">— Tipo —</option>
+            <template x-for="t in tiposEquipo" :key="t.id">
+              <option :value="t.id" x-text="t.codigo"></option>
+            </template>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">N° Equipo</label>
           <input x-model="form.equipo_id" type="number" min="1" id="cadena-equipo"
             class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             placeholder="Ej: 201" required />
@@ -275,14 +285,24 @@ function cadenasDashboard() {
     guardando: false,
     errorMsg: '',
     okMsg: '',
+    tiposEquipo: [],
     form: {
-      equipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
+      equipo_id: '', tipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
       tipo_cadena: 'spreader_principal', longitud_nominal_mm: '', longitud_medida_mm: '',
       num_eslabones: 12, observaciones: ''
     },
 
     async init() {
-      await this.cargarProyecciones();
+      await Promise.all([this.cargarProyecciones(), this.cargarTipos()]);
+    },
+
+    async cargarTipos() {
+      try {
+        const token = sessionStorage.getItem('tw_token');
+        const r = await fetch('/api/equipos/tipos/', { headers: { 'Authorization': 'Token ' + token } });
+        const d = await r.json();
+        this.tiposEquipo = d.results || d;
+      } catch(e) { console.error('Error cargando tipos:', e); }
     },
 
     async cargarProyecciones() {
@@ -323,7 +343,7 @@ function cadenasDashboard() {
       this.errorMsg = '';
       this.okMsg = '';
       this.form = {
-        equipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
+        equipo_id: '', tipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
         tipo_cadena: 'spreader_principal', longitud_nominal_mm: '', longitud_medida_mm: '',
         num_eslabones: 12, observaciones: ''
       };
@@ -336,8 +356,22 @@ function cadenasDashboard() {
       this.okMsg = '';
       try {
         const token = sessionStorage.getItem('tw_token');
+        const hdrs = { 'Authorization': 'Token ' + token, 'Content-Type': 'application/json', 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' };
+
+        // Buscar equipo por tipo+número (identificador único)
+        const rEq = await fetch(`/api/equipos/?tipo=${this.form.tipo_id}&numero=${this.form.equipo_id}`, { headers: hdrs });
+        const dataEq = await rEq.json();
+        const equipos = dataEq.results || dataEq;
+        if (!equipos.length) {
+          const t = this.tiposEquipo.find(t => t.id == this.form.tipo_id);
+          this.errorMsg = `No se encontró el equipo ${t ? t.codigo + '-' : ''}${this.form.equipo_id}`;
+          this.guardando = false;
+          return;
+        }
+        const equipoId = equipos[0].id;
+
         const payload = {
-          equipo: parseInt(this.form.equipo_id),
+          equipo: equipoId,
           fecha: this.form.fecha,
           horometro: this.form.horometro ? parseFloat(this.form.horometro) : null,
           tipo_cadena: this.form.tipo_cadena,
@@ -347,13 +381,7 @@ function cadenasDashboard() {
           observaciones: this.form.observaciones,
         };
         const r = await fetch('/api/cadenas/mediciones/', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Token ' + token,
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
-          },
-          body: JSON.stringify(payload)
+          method: 'POST', headers: hdrs, body: JSON.stringify(payload)
         });
         if (!r.ok) {
           const err = await r.json();

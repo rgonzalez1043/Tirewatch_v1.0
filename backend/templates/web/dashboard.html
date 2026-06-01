@@ -71,7 +71,7 @@
                 <div
                     class="flex items-center justify-between py-2.5 border-b border-navy-700 last:border-0 flex-wrap gap-2">
                     <div class="flex items-center gap-2">
-                        <span class="font-bold text-gray-100" x-text="'Equipo GPCO-' + a.equipo_numero"></span>
+                        <span class="font-bold text-gray-100" x-text="'Equipo ' + (a.equipo_codigo_completo || a.equipo_numero)"></span>
                         <span
                             :class="a.horas_restantes < 200 ? 'text-red-400 bg-red-900/20 border-red-800' : 'text-yellow-400 bg-yellow-900/20 border-yellow-800'"
                             class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
@@ -130,8 +130,8 @@
                     <tbody>
                         <template x-for="(p, i) in data.proyecciones" :key="i">
                             <tr class="border-b border-navy-700/50 hover:bg-navy-900 cursor-pointer transition-colors"
-                                @click="window.location.href='/equipos/'+p.equipo_numero+'/'">
-                                <td class="p-3 font-bold text-gray-200" x-text="'GPCO-' + p.equipo_numero"></td>
+                                @click="window.location.href='/equipos/'+p.equipo+'/'">
+                                <td class="p-3 font-bold text-gray-200" x-text="p.equipo_codigo_completo || p.equipo_numero"></td>
                                 <td class="p-3" x-text="p.marca_nombre"></td>
                                 <td class="p-3 font-mono text-blue-400 font-bold" x-text="p.posicion_critica"></td>
                                 <td class="p-3 font-bold" x-text="Math.round(p.horas_restantes) + ' hrs'"></td>

@@ -4,6 +4,8 @@ from .models import MedicionCadena, ProyeccionCadena
 
 class MedicionCadenaSerializer(serializers.ModelSerializer):
     equipo_numero = serializers.IntegerField(source="equipo.numero", read_only=True)
+    equipo_tipo_codigo = serializers.CharField(source="equipo.tipo.codigo", read_only=True)
+    equipo_codigo_completo = serializers.CharField(source="equipo.codigo_completo", read_only=True)
     registrado_por_nombre = serializers.CharField(
         source="registrado_por.get_full_name", read_only=True, default=""
     )
@@ -13,7 +15,8 @@ class MedicionCadenaSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicionCadena
         fields = [
-            "id", "equipo", "equipo_numero", "fecha", "horometro",
+            "id", "equipo", "equipo_numero", "equipo_tipo_codigo", "equipo_codigo_completo",
+            "fecha", "horometro",
             "tipo_cadena", "tipo_cadena_display",
             "longitud_nominal_mm", "longitud_medida_mm", "num_eslabones",
             "elongacion_pct",
