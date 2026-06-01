@@ -46,7 +46,13 @@ def analizar_componente(componente: ComponenteFreno) -> ProyeccionFreno | None:
         OK       → en el resto de los casos
     """
     config = ConfiguracionSistema.load()
-    limite_mm = config.limite_freno_pastilla_mm
+    # Límite y espesor de fábrica según tipo de freno del componente
+    if componente.tipo_freno == "disco":
+        limite_mm = config.limite_freno_disco_mm
+    elif componente.tipo_freno == "tambor_aire":
+        limite_mm = config.limite_freno_tambor_aire_mm
+    else:  # tambor
+        limite_mm = config.limite_freno_tambor_mm
     prof_fabrica = componente.espesor_fabrica_mm
     umbral_pct = config.umbral_alerta_freno_pct  # 0.0 a 1.0
 

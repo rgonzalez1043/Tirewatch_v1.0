@@ -70,18 +70,51 @@ class ConfiguracionSistema(models.Model):
     limite_turbo_axial = models.FloatField(default=0.15, help_text="Límite máximo de juego axial permitido en mm")
     umbral_alerta_turbo_pct = models.FloatField(default=0.80, help_text="Porcentaje de desgaste (0.0 a 1.0) desde el cual desencadenar alerta de ATENCIÓN")
 
-    # Módulo Frenos (Kalmar T2, Terberg, Konecranes — referencia Kalmar Ottawa T2 manual: mín 6.35 mm)
-    limite_freno_pastilla_mm = models.FloatField(
+    # Módulo Frenos — Tambor (Kalmar T2 todas las ruedas, Terberg todas las ruedas)
+    # Ref: FMCSA 393.47 / industria — balata mínima 6.35 mm (1/4")
+    limite_freno_tambor_mm = models.FloatField(
         default=6.35,
-        help_text="Espesor mínimo de pastilla/balata en mm antes de cambio (Kalmar T2 manual: 6.35 mm / 0.25 inch)"
+        help_text="Balata mínima en mm para frenos de TAMBOR (Kalmar T2, Terberg). Ref: 6.35 mm (1/4 pulgada)"
     )
-    prof_fabrica_freno_mm = models.FloatField(
+    prof_fabrica_freno_tambor_mm = models.FloatField(
         default=20.0,
-        help_text="Espesor de fábrica de la pastilla/balata en mm (referencia para cálculo de desgaste %)"
+        help_text="Espesor de fábrica de la balata de tambor en mm (Kalmar T2, Terberg)"
     )
+
+    # Módulo Frenos — Disco húmedo (Konecranes reach stacker — frenos de disco bañados en aceite)
+    # Ref: especificación típica industria reach stacker ~3 mm pastilla mínima
+    limite_freno_disco_mm = models.FloatField(
+        default=3.0,
+        help_text="Pastilla mínima en mm para frenos de DISCO (Konecranes — disco húmedo/bañado en aceite)"
+    )
+    prof_fabrica_freno_disco_mm = models.FloatField(
+        default=15.0,
+        help_text="Espesor de fábrica de la pastilla de disco húmedo en mm (Konecranes)"
+    )
+
+    # Módulo Frenos — Tambor de aire / chasis (portacontenedoras, ejes de remolque)
+    limite_freno_tambor_aire_mm = models.FloatField(
+        default=6.35,
+        help_text="Balata mínima en mm para frenos de TAMBOR DE AIRE (ejes chasis / remolques portacontenedoras)"
+    )
+    prof_fabrica_freno_tambor_aire_mm = models.FloatField(
+        default=20.0,
+        help_text="Espesor de fábrica de la balata de tambor de aire en mm (ejes chasis)"
+    )
+
     umbral_alerta_freno_pct = models.FloatField(
         default=0.75,
         help_text="Porcentaje de desgaste (0.0 a 1.0) desde el cual generar alerta ATENCIÓN en frenos"
+    )
+
+    # Campo legacy — mantenido para compatibilidad con vistas que aún lo referencian
+    limite_freno_pastilla_mm = models.FloatField(
+        default=6.35,
+        help_text="[Legacy] Límite unificado anterior. Usar limite_freno_tambor_mm / limite_freno_disco_mm según tipo"
+    )
+    prof_fabrica_freno_mm = models.FloatField(
+        default=20.0,
+        help_text="[Legacy] Espesor fábrica unificado anterior. Usar prof_fabrica_freno_tambor_mm / _disco_mm"
     )
 
     # Módulo Cadenas (Taylor container handlers — estándar industria ISO: 3% elongación máx)

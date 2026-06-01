@@ -10,7 +10,14 @@ function frenosDashboard() {
     // ── Estado general ─────────────────────────────────
     equipos: [],          // Array de { equipo_numero, estado_global, componentes[] }
     stats: { total: 0, criticos: 0, atencion: 0, ok: 0 },
-    config: { limite_mm: {{ config.limite_freno_pastilla_mm }}, prof_fabrica_mm: {{ config.prof_fabrica_freno_mm }}, umbral_pct: {{ config.umbral_alerta_freno_pct }} },
+    config: {
+      limite_mm: {{ config.limite_freno_tambor_mm }},
+      prof_fabrica_mm: {{ config.prof_fabrica_freno_tambor_mm }},
+      limite_disco_mm: {{ config.limite_freno_disco_mm }},
+      prof_fabrica_disco_mm: {{ config.prof_fabrica_freno_disco_mm }},
+      limite_tambor_aire_mm: {{ config.limite_freno_tambor_aire_mm }},
+      umbral_pct: {{ config.umbral_alerta_freno_pct }},
+    },
     cargando: true,
     expandidos: {},       // { equipo_numero: true/false }
 
@@ -152,11 +159,18 @@ function frenosDashboard() {
       }
     },
 
-    colorEspesor(val) {
+    limiteParaTipo(tipo) {
+      if (tipo === 'disco') return this.config.limite_disco_mm;
+      if (tipo === 'tambor_aire') return this.config.limite_tambor_aire_mm;
+      return this.config.limite_mm;
+    },
+    colorEspesor(val, tipo) {
       if (!val) return 'text-gray-400';
       const v = parseFloat(val);
-      if (v <= this.config.limite_mm) return 'text-red-400';
-      const umbral = this.config.limite_mm + (this.config.prof_fabrica_mm - this.config.limite_mm) * (1 - this.config.umbral_pct);
+      const lim = this.limiteParaTipo(tipo);
+      if (v <= lim) return 'text-red-400';
+      const fab = tipo === 'disco' ? this.config.prof_fabrica_disco_mm : this.config.prof_fabrica_mm;
+      const umbral = lim + (fab - lim) * (1 - this.config.umbral_pct);
       if (v <= umbral) return 'text-yellow-400';
       return 'text-green-400';
     },
@@ -356,8 +370,11 @@ function frenosDashboard() {
       </h2>
       <p class="text-xs text-gray-500 mt-1">
         Kalmar T2 · Terberg · Konecranes &nbsp;·&nbsp;
-        Disco (delanteros) + Tambor (traseros) + Tambor de Aire (chasis)
-        &nbsp;·&nbsp; Límite cambio: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong>
+        Tambor (Kalmar/Terberg) · Disco húmedo (Konecranes) · Tambor de Aire (chasis)
+        &nbsp;·&nbsp;
+        Límite tambor: <strong class="text-red-400">{{ config.limite_freno_tambor_mm }} mm</strong>
+        &nbsp;·&nbsp;
+        Límite disco: <strong class="text-red-400">{{ config.limite_freno_disco_mm }} mm</strong>
       </p>
     </div>
     <div class="flex items-center gap-2">
@@ -584,41 +601,49 @@ function frenosDashboard() {
     </template>
   </div>
 
-  <!-- INFO TÉCNICA -->
+  <!-- INFO TÉCNICA POR TIPO -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-    <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
-      <span class="text-blue-400 text-base flex-shrink-0">🔵</span>
-      <div>
-        <div class="font-bold text-gray-300 mb-1">Disco (Delanteros)</div>
-        <div class="text-gray-500">Kalmar T2, Konecranes · Pastilla de disco ·
-          Límite: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong></div>
-      </div>
-    </div>
     <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
       <span class="text-orange-400 text-base flex-shrink-0">🟠</span>
       <div>
-        <div class="font-bold text-gray-300 mb-1">Tambor (Traseros)</div>
-        <div class="text-gray-500">Kalmar T2 traseros, Terberg · Balata de tambor ·
-          Límite: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong></div>
+        <div class="font-bold text-gray-300 mb-1">Tambor — Todas las ruedas</div>
+        <div class="text-gray-500">
+          <strong class="text-gray-400">Kalmar T2:</strong> S-CAM tambor delantero y trasero (frenos de aire + resorte)<br>
+          <strong class="text-gray-400">Terberg:</strong> Z-cam delantero · Duplex wedge trasero (frenos de aire)<br>
+          Balata mínima: <strong class="text-red-400">{{ config.limite_freno_tambor_mm }} mm</strong>
+          · Fábrica: {{ config.prof_fabrica_freno_tambor_mm }} mm
+        </div>
+      </div>
+    </div>
+    <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
+      <span class="text-blue-400 text-base flex-shrink-0">🔵</span>
+      <div>
+        <div class="font-bold text-gray-300 mb-1">Disco Húmedo — Konecranes</div>
+        <div class="text-gray-500">
+          <strong class="text-gray-400">Konecranes RST:</strong> Frenos de disco bañados en aceite (wet disc) en ruedas motrices<br>
+          Pastilla mínima: <strong class="text-red-400">{{ config.limite_freno_disco_mm }} mm</strong>
+          · Fábrica: {{ config.prof_fabrica_freno_disco_mm }} mm
+        </div>
       </div>
     </div>
     <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
       <span class="text-purple-400 text-base flex-shrink-0">🟣</span>
       <div>
-        <div class="font-bold text-gray-300 mb-1">Tambor de Aire (Chasis)</div>
-        <div class="text-gray-500">Chasis portacontenedores · Accionamiento neumático ·
-          Mismo límite de espesor de balata</div>
+        <div class="font-bold text-gray-300 mb-1">Tambor de Aire — Chasis</div>
+        <div class="text-gray-500">
+          Ejes chasis portacontenedoras · Accionamiento neumático<br>
+          Balata mínima: <strong class="text-red-400">{{ config.limite_freno_tambor_aire_mm }} mm</strong>
+          · Fábrica: {{ config.prof_fabrica_freno_tambor_aire_mm }} mm
+        </div>
       </div>
     </div>
   </div>
 
-</div>{# /x-data #}
 
 
 {# ═══════════════════════════════════════════════════════════════ #}
 {# MODAL: REGISTRAR MEDICIÓN                                       #}
 {# ═══════════════════════════════════════════════════════════════ #}
-<div x-data="frenosDashboard()" id="modal-medicion-wrapper">
 <div x-show="modal === 'medicion'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
   @keydown.escape.window="modal = ''">
@@ -698,7 +723,7 @@ function frenosDashboard() {
               <!-- Nombre de posición -->
               <div class="flex-1">
                 <div class="text-sm font-semibold text-gray-200" x-text="c.posicion_display"></div>
-                <div class="text-[10px] text-gray-500" x-text="c.tipo_freno_display + ' · Fábrica: ' + (c.espesor_fabrica_mm || '?') + ' mm · Límite: {{ config.limite_freno_pastilla_mm }} mm'"></div>
+                <div class="text-[10px] text-gray-500" x-text="c.tipo_freno_display + ' · Fábrica: ' + (c.espesor_fabrica_mm || '?') + ' mm · Límite: ' + limiteParaTipo(c.tipo_freno).toFixed(2) + ' mm'"></div>
               </div>
               <!-- Input de espesor -->
               <div class="flex items-center gap-2 flex-shrink-0">
@@ -707,7 +732,7 @@ function frenosDashboard() {
                   :value="medicionEspesores[c.id]"
                   type="number" step="0.1" min="0.1"
                   :placeholder="'Ej: ' + (c.espesor_fabrica_mm || 20)"
-                  :class="medicionEspesores[c.id] && parseFloat(medicionEspesores[c.id]) <= {{ config.limite_freno_pastilla_mm }} ? 'border-red-600 text-red-400' : 'border-navy-600 text-gray-200'"
+                  :class="medicionEspesores[c.id] && parseFloat(medicionEspesores[c.id]) <= limiteParaTipo(c.tipo_freno) ? 'border-red-600 text-red-400' : 'border-navy-600 text-gray-200'"
                   class="w-24 bg-navy-800 border rounded-lg py-2 px-2.5 text-sm font-mono text-right focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors" />
                 <span class="text-gray-500 text-xs">mm</span>
               </div>
@@ -755,13 +780,11 @@ function frenosDashboard() {
 
   </div>
 </div>
-</div>
 
 
 {# ═══════════════════════════════════════════════════════════════ #}
 {# MODAL: REGISTRAR COMPONENTE                                     #}
 {# ═══════════════════════════════════════════════════════════════ #}
-<div x-data="frenosDashboard()" id="modal-componente-wrapper">
 <div x-show="modal === 'componente'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
   @keydown.escape.window="modal = ''">
@@ -854,13 +877,11 @@ function frenosDashboard() {
     </div>
   </div>
 </div>
-</div>
 
 
 {# ═══════════════════════════════════════════════════════════════ #}
 {# MODAL: REGISTRAR REEMPLAZO                                      #}
 {# ═══════════════════════════════════════════════════════════════ #}
-<div x-data="frenosDashboard()" id="modal-reemplazo-wrapper">
 <div x-show="modal === 'reemplazo'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
   @keydown.escape.window="modal = ''">
@@ -945,6 +966,7 @@ function frenosDashboard() {
     </div>
   </div>
 </div>
-</div>
+
+</div>{# /x-data #}
 
 {% endblock %}

@@ -11,8 +11,10 @@
         Dashboard — Cadenas
       </h2>
       <p class="text-xs text-gray-500 mt-1">
-        Elongación de cadenas de spreader · Grúas Taylor
-        · Límite de reemplazo: <strong class="text-yellow-400">{{ config.limite_elongacion_cadena_pct }}%</strong>
+        Elongación de cadenas de spreader · <strong class="text-yellow-400">Portacontenedoras Taylor</strong>
+        <span class="text-gray-600 ml-2">— Las Konecranes RST usan frenos de disco, no cadenas</span>
+        <br>
+        Límite de reemplazo: <strong class="text-yellow-400">{{ config.limite_elongacion_cadena_pct }}%</strong>
         · Alerta temprana: <strong class="text-orange-400">{{ config.umbral_alerta_cadena_pct }}%</strong>
         (Estándar ISO / industria portuaria)
       </p>
@@ -136,17 +138,19 @@
   <div class="bg-navy-800/50 border border-navy-700 rounded-lg p-4 text-xs text-gray-500 flex items-start gap-3">
     <span class="text-yellow-400 text-lg">ℹ️</span>
     <div>
-      <strong class="text-gray-400">Referencia técnica (Cadenas de Spreader Taylor):</strong>
-      Estándar ISO / industria: reemplazar cuando la elongación supera <strong class="text-red-400">{{ config.limite_elongacion_cadena_pct }}%</strong>.
-      Alerta de ATENCIÓN desde <strong class="text-yellow-400">{{ config.umbral_alerta_cadena_pct }}%</strong>.
+      <strong class="text-gray-400">Referencia técnica — Cadenas de Spreader Taylor (portacontenedoras americanas):</strong>
+      Reemplazar cuando la elongación supera <strong class="text-red-400">{{ config.limite_elongacion_cadena_pct }}%</strong>
+      (Estándar ISO / industria).
+      Alerta ATENCIÓN desde <strong class="text-yellow-400">{{ config.umbral_alerta_cadena_pct }}%</strong>.
+      <br>
+      <strong class="text-gray-400">⚠️ Solo aplica a Taylor:</strong>
+      Las Konecranes RST no utilizan cadenas de spreader — usan cilindros hidráulicos y frenos de disco húmedo.
       <br>
       <strong class="text-gray-400">Instrucción de medición:</strong>
       Medir bajo tensión sobre 10-12 eslabones consecutivos (pin a pin). Comparar con la longitud nominal del mismo tramo.
       Valores configurables en <a href="{% url 'web:configuracion_sistema' %}" class="text-blue-400 hover:underline">Configuración del Sistema</a>.
     </div>
   </div>
-
-</div>
 
 <!-- ═══ MODAL: Registrar Medición de Cadena ═══ -->
 <div x-show="modalAbierto" x-cloak
@@ -253,6 +257,8 @@
       </div>
     </form>
   </div>
+</div>
+
 </div>
 
 {% endblock %}
