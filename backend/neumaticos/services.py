@@ -17,6 +17,11 @@ from equipos.models import Equipo
 from core.models import ConfiguracionSistema
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class MotorAnalisis:
     """Motor de cálculo de desgaste y proyecciones"""
 
@@ -99,8 +104,11 @@ class MotorAnalisis:
 
                     desgaste = val_act - val_ant
 
-                    # Filtrar: solo desgaste real (negativo) y no pinchazos
-                    if desgaste < 0 and desgaste > self.filtro_pinchazo:
+                    # Filtrar: solo desgaste real (negativo) y tasa no excesiva (pinchazo)
+                    # Usamos tasa mm/día en vez de valor absoluto para no descartar
+                    # intervalos largos entre mediciones con desgaste normal acumulado
+                    tasa_diaria = desgaste / dt  # negativa = desgaste
+                    if desgaste < 0 and tasa_diaria > self.filtro_pinchazo:
                         # Por marca
                         if pos not in acum_marcas[marca]:
                             acum_marcas[marca][pos] = {"mm": 0, "dias": 0, "n": 0}
@@ -170,6 +178,11 @@ class MotorAnalisis:
             if tasa_dia >= 0:
                 continue  # No hay desgaste
 
+            # Protección contra división por cero
+            if horas_dia <= 0:
+                logger.warning(f"Equipo {equipo.numero}: horas_diarias=0, usando fallback {self.horas_diarias}")
+                horas_dia = self.horas_diarias
+
             tasa_hora = tasa_dia / horas_dia
             horas_restantes = (self.limite_cambio - val) / tasa_hora
 
@@ -177,11 +190,17 @@ class MotorAnalisis:
                 min_horas = horas_restantes
                 mejor_pos = pos.upper()
 
-        if mejor_pos is None or min_horas == float("inf"):
+        # Validación robusta: descartar infinitos y valores no válidos
+        if mejor_pos is None or min_horas == float("inf") or min_horas != min_horas:  # NaN check
             return None
 
+        # Acotar horas restantes a un máximo razonable (10 años ≈ 87600 horas)
+        MAX_HORAS_RAZONABLES = 87600.0
+        if min_horas > MAX_HORAS_RAZONABLES:
+            min_horas = MAX_HORAS_RAZONABLES
+
         dias_restantes = min_horas / horas_dia
-        fecha_cambio = ultimo.fecha + timedelta(days=dias_restantes)
+        fecha_cambio = ultimo.fecha + timedelta(days=int(dias_restantes))
 
         return {
             "equipo": equipo,
@@ -231,7 +250,16 @@ class MotorAnalisis:
         marca = ultimo.marca_nombre.upper()
         tasas = tasas_marca.get(marca, tasa_global)
 
-        for mes in range(1, 49):
+        # Usar meses de proyección desde configuración del sistema
+        try:
+            config = ConfiguracionSistema.load()
+            # Usamos el límite del settings TIREWATCH como fallback
+            from django.conf import settings
+            meses_max = settings.TIREWATCH.get("MESES_PROYECCION_MAX", 48)
+        except Exception:
+            meses_max = 48
+
+        for mes in range(1, meses_max + 1):
             fecha_proy = ultimo.fecha + timedelta(days=30 * mes)
             valores = {}
             alguno_bajo = False

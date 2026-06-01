@@ -87,8 +87,8 @@ def analizar_cadenas_equipo(equipo):
 
     proy, _ = ProyeccionCadena.objects.update_or_create(
         equipo=equipo,
+        tipo_cadena=ultima.tipo_cadena,
         defaults={
-            "tipo_cadena": tipo_cadena,
             "elongacion_actual_pct": elongacion_actual,
             "longitud_nominal_mm": ultima.longitud_nominal_mm,
             "longitud_actual_mm": ultima.longitud_medida_mm,

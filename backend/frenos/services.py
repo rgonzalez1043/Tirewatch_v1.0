@@ -5,6 +5,7 @@ la fecha estimada de cambio en función del límite configurado.
 """
 import datetime
 import logging
+from django.db import transaction
 from django.utils import timezone
 from core.models import ConfiguracionSistema
 from .models import ComponenteFreno, MedicionFreno, ProyeccionFreno
@@ -162,6 +163,7 @@ def analizar_todos_los_frenos():
     return resultados
 
 
+@transaction.atomic
 def registrar_reemplazo(componente: ComponenteFreno, fecha_retiro, motivo_retiro,
                         nuevo_espesor_fabrica_mm, fecha_instalacion, horometro_instalacion,
                         notas="", registrado_por=None) -> ComponenteFreno:
@@ -171,6 +173,8 @@ def registrar_reemplazo(componente: ComponenteFreno, fecha_retiro, motivo_retiro
     2. Elimina su proyección
     3. Crea un nuevo componente en la misma posición
     4. Crea proyección inicial para el nuevo componente
+
+    Envuelto en transacción atómica: si algo falla, se revierte todo.
     """
     # Retirar componente antiguo
     componente.activo = False

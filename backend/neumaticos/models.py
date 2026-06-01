@@ -54,8 +54,12 @@ class Neumatico(models.Model):
             return self.profundidad_inicial_mm
         if self.marca and self.marca.profundidad_fabrica_mm:
             return self.marca.profundidad_fabrica_mm
-        tw = settings.TIREWATCH
-        return tw["PROFUNDIDAD_FABRICA"].get(self.marca.nombre.upper(), 75)
+        # Fallback a la configuración global del sistema (o valor por defecto seguro)
+        try:
+            from core.models import ConfiguracionSistema
+            return ConfiguracionSistema.load().prof_fabrica_neumatico
+        except Exception:
+            return 75.0
 
 
 class Medicion(models.Model):

@@ -90,10 +90,10 @@ class ProyeccionCadena(models.Model):
         ("CRITICO", "Crítico"),
     ]
 
-    equipo = models.OneToOneField(
+    equipo = models.ForeignKey(
         "equipos.Equipo",
         on_delete=models.CASCADE,
-        related_name="proyeccion_cadena",
+        related_name="proyecciones_cadena",
     )
     tipo_cadena = models.CharField(max_length=30, blank=True)
 
@@ -134,6 +134,7 @@ class ProyeccionCadena(models.Model):
     class Meta:
         verbose_name = "Proyección de Cadena"
         verbose_name_plural = "Proyecciones de Cadenas"
+        unique_together = ["equipo", "tipo_cadena"]
         ordering = ["estado", "elongacion_actual_pct"]
 
     def __str__(self):

@@ -2,7 +2,6 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from web.views import login_view
 from django.conf.urls.static import static
 
 urlpatterns = [
@@ -15,7 +14,6 @@ urlpatterns = [
     path("api/frenos/", include("frenos.urls")),
     path("api/cadenas/", include("cadenas.urls")),
     # Frontend web
-    path("login/", login_view, name="login"),
     path("", include("web.urls")),
 ]
 

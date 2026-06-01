@@ -27,6 +27,11 @@ class MedicionCadenaViewSet(viewsets.ModelViewSet):
         medicion = serializer.save()
         analizar_cadenas_equipo(medicion.equipo)
 
+    def perform_destroy(self, instance):
+        equipo = instance.equipo
+        instance.delete()
+        analizar_cadenas_equipo(equipo)
+
 
 class ProyeccionCadenaViewSet(viewsets.ReadOnlyModelViewSet):
     """Proyecciones de cadenas calculadas por el motor analítico."""
