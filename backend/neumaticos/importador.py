@@ -71,8 +71,8 @@ def importar_excel(archivo, usuario=None):
 
     # Asegurar tipo de equipo existe
     tipo_equipo, _ = TipoEquipo.objects.get_or_create(
-        codigo="PC",
-        defaults={"nombre": "Portacontenedor"}
+        codigo="GPCO",
+        defaults={"nombre": "Portacontenedor / Reach Stacker"}
     )
 
     fecha_vigente = None

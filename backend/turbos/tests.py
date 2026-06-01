@@ -17,7 +17,7 @@ from turbos.services import AnalizadorTurbos
 # Fixtures compartidas
 # ─────────────────────────────────────────────────────────────
 def crear_equipo(numero=201):
-    tipo, _ = TipoEquipo.objects.get_or_create(codigo="PC", defaults={"nombre": "Portacontenedor"})
+    tipo, _ = TipoEquipo.objects.get_or_create(codigo="GPCO", defaults={"nombre": "Portacontenedor / Reach Stacker"})
     return Equipo.objects.get_or_create(numero=numero, defaults={"tipo": tipo})[0]
 
 
