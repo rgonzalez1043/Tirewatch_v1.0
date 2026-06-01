@@ -10,6 +10,8 @@ from django.db.models import Count, Q
 
 from core.models import ConfiguracionSistema, Usuario
 from turbos.models import ProyeccionTurbo
+from frenos.models import ProyeccionFreno
+from cadenas.models import ProyeccionCadena
 from neumaticos.models import Proyeccion as ProyeccionNeumaticos
 from .forms import ConfiguracionSistemaForm, UsuarioCreationForm, UsuarioEditForm
 
@@ -68,14 +70,14 @@ def equipo_detalle(request, equipo_id):
 @login_required(login_url="/login/")
 def modulos(request):
     modulos_activos = [
-        {"icono": "🛞", "titulo": "Neumáticos", "descripcion": "Desgaste y proyección de cambio", "url": "/", "activo": True},
+        {"icono": "🛥", "titulo": "Neumáticos", "descripcion": "Desgaste y proyección de cambio", "url": "/", "activo": True},
         {"icono": "⚙️", "titulo": "Turbos", "descripcion": "Juego Radial/Axial y proyección de overhaul", "url": "/turbos/", "activo": True},
+        {"icono": "🛑", "titulo": "Frenos", "descripcion": "Desgaste de pastillas — Kalmar T2, Terberg, Konecranes", "url": "/frenos/", "activo": True},
+        {"icono": "⛓️", "titulo": "Cadenas", "descripcion": "Elongación de cadenas de spreader — Taylor", "url": "/cadenas/", "activo": True},
     ]
     modulos_futuros = [
-        {"icono": "🛑", "titulo": "Frenos", "descripcion": "Desgaste de pastillas y discos"},
-        {"icono": "⛓️", "titulo": "Cadenas", "descripcion": "Elongación y ciclos GPCO"},
-        {"icono": "📄", "titulo": "Reportes PDF", "descripcion": "Reportes automáticos"},
-        {"icono": "📱", "titulo": "App Móvil", "descripcion": "Flutter para terreno"},
+        {"icono": "📱", "titulo": "App Móvil", "descripcion": "Flutter para registro en terreno", "url": "/app-movil/"},
+        {"icono": "📤", "titulo": "Exportación Avanzada", "descripcion": "Reportes Excel y bi-direccionales"},
     ]
     return render(request, "web/modulos.html", {"modulos_activos": modulos_activos, "modulos_futuros": modulos_futuros})
 
@@ -157,7 +159,7 @@ def usuario_editar(request, user_id):
 @login_required(login_url="/login/")
 def reporte_proyecciones(request):
     """
-    Reporte imprimible de todas las proyecciones activas (neumáticos + turbos).
+    Reporte imprimible de todas las proyecciones activas (neumáticos + turbos + frenos + cadenas).
     Accesible en /reportes/ — usar Ctrl+P / Imprimir en el navegador para generar PDF.
     """
     proy_neumaticos = list(
@@ -170,16 +172,38 @@ def reporte_proyecciones(request):
         .select_related("equipo")
         .order_by("horas_motor_restantes")
     )
+    proy_frenos = (
+        ProyeccionFreno.objects
+        .select_related("equipo")
+        .order_by("horas_restantes")
+    )
+    proy_cadenas = (
+        ProyeccionCadena.objects
+        .select_related("equipo")
+        .order_by("horas_restantes")
+    )
     config = ConfiguracionSistema.load()
 
-    # Pre-calcular stats de neumáticos en Python (los templates Django no permiten
-    # acumuladores mutables con {% with %}, lo que produce conteos incorrectos)
+    # Pre-calcular stats de neumáticos en Python
     stats_neu = {"total": len(proy_neumaticos), "criticos": 0, "atencion": 0, "ok": 0}
     for p in proy_neumaticos:
-        stats_neu[p.estado] += 1  # p.estado retorna 'critico' | 'atencion' | 'ok'
+        stats_neu[p.estado] += 1
 
-    # Stats de turbos vía ORM (son simples porque el estado es un campo de BD)
     stats_turb = proy_turbos.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+
+    stats_frenos = proy_frenos.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+
+    stats_cadenas = proy_cadenas.aggregate(
         total=Count("id"),
         criticos=Count("id", filter=Q(estado="CRITICO")),
         atencion=Count("id", filter=Q(estado="ATENCION")),
@@ -189,9 +213,57 @@ def reporte_proyecciones(request):
     context = {
         "proy_neumaticos": proy_neumaticos,
         "proy_turbos": proy_turbos,
+        "proy_frenos": proy_frenos,
+        "proy_cadenas": proy_cadenas,
         "config": config,
         "usuario": request.user,
         "stats_neu": stats_neu,
         "stats_turb": stats_turb,
+        "stats_frenos": stats_frenos,
+        "stats_cadenas": stats_cadenas,
     }
     return render(request, "web/reporte.html", context)
+
+
+@login_required(login_url="/login/")
+def frenos_dashboard(request):
+    """Dashboard de Frenos. Datos cargados vía fetch JS al endpoint /api/frenos/."""
+    config = ConfiguracionSistema.load()
+    proyecciones = ProyeccionFreno.objects.select_related("equipo").all()
+    stats = proyecciones.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+    context = {
+        "proyecciones": proyecciones,
+        "stats": stats,
+        "config": config,
+    }
+    return render(request, "web/frenos_dashboard.html", context)
+
+
+@login_required(login_url="/login/")
+def cadenas_dashboard(request):
+    """Dashboard de Cadenas. Datos cargados vía fetch JS al endpoint /api/cadenas/."""
+    config = ConfiguracionSistema.load()
+    proyecciones = ProyeccionCadena.objects.select_related("equipo").all()
+    stats = proyecciones.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+    context = {
+        "proyecciones": proyecciones,
+        "stats": stats,
+        "config": config,
+    }
+    return render(request, "web/cadenas_dashboard.html", context)
+
+
+@login_required(login_url="/login/")
+def app_movil(request):
+    """Página informativa de la App Móvil TireWatch (Flutter)."""
+    return render(request, "web/app_movil.html")

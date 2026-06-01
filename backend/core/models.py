@@ -70,6 +70,30 @@ class ConfiguracionSistema(models.Model):
     limite_turbo_axial = models.FloatField(default=0.15, help_text="Límite máximo de juego axial permitido en mm")
     umbral_alerta_turbo_pct = models.FloatField(default=0.80, help_text="Porcentaje de desgaste (0.0 a 1.0) desde el cual desencadenar alerta de ATENCIÓN")
 
+    # Módulo Frenos (Kalmar T2, Terberg, Konecranes — referencia Kalmar Ottawa T2 manual: mín 6.35 mm)
+    limite_freno_pastilla_mm = models.FloatField(
+        default=6.35,
+        help_text="Espesor mínimo de pastilla/balata en mm antes de cambio (Kalmar T2 manual: 6.35 mm / 0.25 inch)"
+    )
+    prof_fabrica_freno_mm = models.FloatField(
+        default=20.0,
+        help_text="Espesor de fábrica de la pastilla/balata en mm (referencia para cálculo de desgaste %)"
+    )
+    umbral_alerta_freno_pct = models.FloatField(
+        default=0.75,
+        help_text="Porcentaje de desgaste (0.0 a 1.0) desde el cual generar alerta ATENCIÓN en frenos"
+    )
+
+    # Módulo Cadenas (Taylor container handlers — estándar industria ISO: 3% elongación máx)
+    limite_elongacion_cadena_pct = models.FloatField(
+        default=3.0,
+        help_text="Elongación máxima permitida en % antes de reemplazar la cadena (ISO/industria: 3.0%)"
+    )
+    umbral_alerta_cadena_pct = models.FloatField(
+        default=1.5,
+        help_text="Elongación (%) desde la cual generar alerta ATENCIÓN en cadenas (recomendación industria: 1.5%)"
+    )
+
     class Meta:
         verbose_name = "Configuración del Sistema"
         verbose_name_plural = "Configuración del Sistema"

@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     "equipos.apps.EquiposConfig",
     "neumaticos.apps.NeumaticosConfig",
     "turbos.apps.TurbosConfig",
+    "frenos.apps.FrenosConfig",
+    "cadenas.apps.CadenasConfig",
     "web.apps.WebConfig",
 ]
 

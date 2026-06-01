@@ -7,13 +7,16 @@ urlpatterns = [
     path("login/", views.login_view, name="login"),
     path("", views.dashboard, name="dashboard"),
     path("turbos/", views.turbos_dashboard, name="turbos_dashboard"),
+    path("frenos/", views.frenos_dashboard, name="frenos_dashboard"),
+    path("cadenas/", views.cadenas_dashboard, name="cadenas_dashboard"),
+    path("app-movil/", views.app_movil, name="app_movil"),
     path("configuracion/", views.configuracion_sistema, name="configuracion_sistema"),
     path("terreno/", views.terreno, name="terreno"),
     path("importar/", views.importar, name="importar"),
     path("equipos/<int:equipo_id>/", views.equipo_detalle, name="equipo_detalle"),
     path("modulos/", views.modulos, name="modulos"),
     path("ayuda/", views.ayuda, name="ayuda"),
-    
+
     # Reportes
     path("reportes/", views.reporte_proyecciones, name="reporte_proyecciones"),
 

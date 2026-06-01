@@ -1,0 +1,368 @@
+{% extends "web/base.html" %}
+{% block title %}Cadenas — Dashboard{% endblock %}
+{% block content %}
+<div class="w-full max-w-7xl mx-auto space-y-6" x-data="cadenasDashboard()">
+
+  <!-- Cabecera -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-extrabold text-gray-100 flex items-center gap-2">
+        <span class="text-2xl">⛓️</span>
+        Dashboard — Cadenas
+      </h2>
+      <p class="text-xs text-gray-500 mt-1">
+        Elongación de cadenas de spreader · Grúas Taylor
+        · Límite de reemplazo: <strong class="text-yellow-400">{{ config.limite_elongacion_cadena_pct }}%</strong>
+        · Alerta temprana: <strong class="text-orange-400">{{ config.umbral_alerta_cadena_pct }}%</strong>
+        (Estándar ISO / industria portuaria)
+      </p>
+    </div>
+    <button @click="abrirModal()" id="btn-nueva-medicion-cadena"
+      class="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-bold rounded-lg transition-all shadow shadow-yellow-900/40">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+      </svg>
+      Registrar Medición
+    </button>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-blue-400">{{ stats.total }}</div>
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Total Equipos</div>
+    </div>
+    <div class="bg-navy-800 border border-red-800/40 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-red-400">{{ stats.criticos }}</div>
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Críticos</div>
+    </div>
+    <div class="bg-navy-800 border border-yellow-800/40 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-yellow-400">{{ stats.atencion }}</div>
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Atención</div>
+    </div>
+    <div class="bg-navy-800 border border-green-800/40 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-green-400">{{ stats.ok }}</div>
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">OK</div>
+    </div>
+  </div>
+
+  <!-- Tabla de proyecciones -->
+  <div class="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
+      <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider">Proyecciones de Cadenas por Equipo</h3>
+      <button @click="recalcular()" :disabled="cargando"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 text-gray-300 text-xs font-medium rounded-md transition-all disabled:opacity-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" :class="cargando ? 'animate-spin' : ''">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Recalcular
+      </button>
+    </div>
+
+    <template x-if="proyecciones.length === 0 && !cargando">
+      <div class="p-12 text-center">
+        <div class="text-4xl mb-3">⛓️</div>
+        <p class="text-gray-500 text-sm">Sin datos de cadenas registrados aún.</p>
+        <p class="text-gray-600 text-xs mt-1">Registra una medición de elongación para comenzar el análisis.</p>
+        <button @click="abrirModal()" class="mt-4 px-4 py-2 bg-yellow-700 hover:bg-yellow-600 text-white text-sm rounded-lg transition-all">
+          Registrar primera medición
+        </button>
+      </div>
+    </template>
+
+    <template x-if="proyecciones.length > 0">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left border-b border-navy-700">
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Equipo</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tipo Cadena</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Elongación Actual</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">L. Nominal</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">L. Actual</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tasa /1kh</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hrs Restantes</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Reemplazo Est.</th>
+              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="p in proyecciones" :key="p.id">
+              <tr class="border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors">
+                <td class="px-4 py-3 font-bold font-mono text-gray-200" x-text="'GPCO-' + p.equipo_numero"></td>
+                <td class="px-4 py-3 text-gray-400 text-xs" x-text="p.tipo_cadena || '—'"></td>
+                <td class="px-4 py-3 font-mono font-bold">
+                  <!-- Barra de progreso de elongación -->
+                  <div class="flex items-center gap-2">
+                    <div class="w-16 bg-navy-700 rounded-full h-1.5">
+                      <div :style="'width:' + Math.min((p.elongacion_actual_pct / {{ config.limite_elongacion_cadena_pct }}) * 100, 100) + '%'"
+                        :class="p.elongacion_actual_pct >= {{ config.limite_elongacion_cadena_pct }} ? 'bg-red-500' : p.elongacion_actual_pct >= {{ config.umbral_alerta_cadena_pct }} ? 'bg-yellow-500' : 'bg-green-500'"
+                        class="h-1.5 rounded-full transition-all"></div>
+                    </div>
+                    <span :class="p.elongacion_actual_pct >= {{ config.limite_elongacion_cadena_pct }} ? 'text-red-400' : p.elongacion_actual_pct >= {{ config.umbral_alerta_cadena_pct }} ? 'text-yellow-400' : 'text-green-400'"
+                      x-text="p.elongacion_actual_pct !== null ? p.elongacion_actual_pct.toFixed(2) + '%' : '—'"></span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 font-mono text-gray-500 text-xs"
+                  x-text="p.longitud_nominal_mm ? p.longitud_nominal_mm.toFixed(1) + ' mm' : '—'"></td>
+                <td class="px-4 py-3 font-mono text-gray-400 text-xs"
+                  x-text="p.longitud_actual_mm ? p.longitud_actual_mm.toFixed(1) + ' mm' : '—'"></td>
+                <td class="px-4 py-3 font-mono text-gray-500 text-xs"
+                  x-text="p.tasa_elongacion_pct_1000h ? '+' + p.tasa_elongacion_pct_1000h.toFixed(3) + '%' : '—'"></td>
+                <td class="px-4 py-3 font-mono font-bold"
+                  :class="p.horas_restantes < 200 ? 'text-red-400' : p.horas_restantes < 500 ? 'text-yellow-400' : 'text-green-400'"
+                  x-text="p.horas_restantes >= 99000 ? 'Estable' : Math.round(p.horas_restantes) + ' h'"></td>
+                <td class="px-4 py-3 text-gray-400 text-xs" x-text="p.fecha_reemplazo_estimada || '—'"></td>
+                <td class="px-4 py-3">
+                  <span :class="{
+                    'bg-red-900/40 text-red-400 border-red-800': p.estado === 'CRITICO',
+                    'bg-yellow-900/40 text-yellow-400 border-yellow-800': p.estado === 'ATENCION',
+                    'bg-green-900/40 text-green-400 border-green-800': p.estado === 'OK'
+                  }" class="px-2 py-0.5 rounded-full text-[10px] font-bold border" x-text="p.estado"></span>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+    </template>
+
+    <template x-if="cargando">
+      <div class="p-8 text-center text-gray-500 text-sm">Cargando datos...</div>
+    </template>
+  </div>
+
+  <!-- Info técnica -->
+  <div class="bg-navy-800/50 border border-navy-700 rounded-lg p-4 text-xs text-gray-500 flex items-start gap-3">
+    <span class="text-yellow-400 text-lg">ℹ️</span>
+    <div>
+      <strong class="text-gray-400">Referencia técnica (Cadenas de Spreader Taylor):</strong>
+      Estándar ISO / industria: reemplazar cuando la elongación supera <strong class="text-red-400">{{ config.limite_elongacion_cadena_pct }}%</strong>.
+      Alerta de ATENCIÓN desde <strong class="text-yellow-400">{{ config.umbral_alerta_cadena_pct }}%</strong>.
+      <br>
+      <strong class="text-gray-400">Instrucción de medición:</strong>
+      Medir bajo tensión sobre 10-12 eslabones consecutivos (pin a pin). Comparar con la longitud nominal del mismo tramo.
+      Valores configurables en <a href="{% url 'web:configuracion_sistema' %}" class="text-blue-400 hover:underline">Configuración del Sistema</a>.
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══ MODAL: Registrar Medición de Cadena ═══ -->
+<div x-show="modalAbierto" x-cloak
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+  @keydown.escape.window="modalAbierto = false">
+  <div class="bg-navy-800 border border-navy-700 rounded-xl w-full max-w-xl mx-4 shadow-2xl" @click.outside="modalAbierto = false">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
+      <h3 class="text-base font-bold text-gray-200 flex items-center gap-2">⛓️ Registrar Medición de Cadena</h3>
+      <button @click="modalAbierto = false" class="text-gray-500 hover:text-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form @submit.prevent="guardarMedicion()" class="p-6 space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipo (N°)</label>
+          <input x-model="form.equipo_id" type="number" min="1" id="cadena-equipo"
+            class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+            placeholder="Ej: 201" required />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha</label>
+          <input x-model="form.fecha" type="date" id="cadena-fecha"
+            class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+            required />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Horómetro (h)</label>
+          <input x-model="form.horometro" type="number" step="0.1" id="cadena-horometro"
+            class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+            placeholder="Ej: 8200" />
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Cadena</label>
+          <select x-model="form.tipo_cadena" id="cadena-tipo"
+            class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500">
+            <option value="spreader_principal">Cadena Principal de Spreader</option>
+            <option value="spreader_secundaria">Cadena Secundaria de Spreader</option>
+            <option value="elevacion">Cadena de Elevación</option>
+            <option value="traslacion">Cadena de Traslación</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="bg-navy-900/50 border border-navy-700 rounded-lg p-4 space-y-3">
+        <p class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Medición de Elongación</p>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="space-y-1">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Long. Nominal (mm)</label>
+            <input x-model="form.longitud_nominal_mm" type="number" step="0.1" id="cadena-nominal"
+              class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+              placeholder="mm nueva" required />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Long. Medida (mm)</label>
+            <input x-model="form.longitud_medida_mm" type="number" step="0.1" id="cadena-medida"
+              class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+              placeholder="mm actual" required />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">N° Eslabones</label>
+            <input x-model="form.num_eslabones" type="number" min="1" id="cadena-eslabones"
+              class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+              placeholder="12" />
+          </div>
+        </div>
+        <!-- Elongación calculada en tiempo real -->
+        <div class="text-center" x-show="form.longitud_nominal_mm && form.longitud_medida_mm">
+          <span class="text-xs text-gray-400">Elongación calculada: </span>
+          <span class="text-sm font-bold"
+            :class="(((parseFloat(form.longitud_medida_mm) - parseFloat(form.longitud_nominal_mm)) / parseFloat(form.longitud_nominal_mm)) * 100) >= {{ config.limite_elongacion_cadena_pct }} ? 'text-red-400' : (((parseFloat(form.longitud_medida_mm) - parseFloat(form.longitud_nominal_mm)) / parseFloat(form.longitud_nominal_mm)) * 100) >= {{ config.umbral_alerta_cadena_pct }} ? 'text-yellow-400' : 'text-green-400'"
+            x-text="form.longitud_nominal_mm && form.longitud_medida_mm ? (((parseFloat(form.longitud_medida_mm) - parseFloat(form.longitud_nominal_mm)) / parseFloat(form.longitud_nominal_mm)) * 100).toFixed(2) + '%' : ''">
+          </span>
+        </div>
+        <p class="text-[10px] text-gray-600">⚠️ Medir bajo tensión sobre 10-12 eslabones. Límite: {{ config.limite_elongacion_cadena_pct }}%</p>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Observaciones</label>
+        <textarea x-model="form.observaciones" id="cadena-observaciones" rows="2"
+          class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+          placeholder="Estado visual de la cadena, corrosión, enlace dañado, etc."></textarea>
+      </div>
+
+      <div x-show="errorMsg" class="p-3 bg-red-900/40 border border-red-800 rounded-md text-red-400 text-sm" x-text="errorMsg"></div>
+      <div x-show="okMsg" class="p-3 bg-green-900/40 border border-green-800 rounded-md text-green-400 text-sm" x-text="okMsg"></div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" @click="modalAbierto = false"
+          class="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 bg-navy-700 hover:bg-navy-600 rounded-lg transition-all">
+          Cancelar
+        </button>
+        <button type="submit" :disabled="guardando"
+          class="flex items-center gap-2 px-5 py-2 bg-yellow-600 hover:bg-yellow-500 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
+          <span x-text="guardando ? 'Guardando...' : 'Guardar Medición'"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_head %}
+<script>
+function cadenasDashboard() {
+  return {
+    proyecciones: [],
+    stats: { total: {{ stats.total }}, criticos: {{ stats.criticos }}, atencion: {{ stats.atencion }}, ok: {{ stats.ok }} },
+    cargando: false,
+    modalAbierto: false,
+    guardando: false,
+    errorMsg: '',
+    okMsg: '',
+    form: {
+      equipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
+      tipo_cadena: 'spreader_principal', longitud_nominal_mm: '', longitud_medida_mm: '',
+      num_eslabones: 12, observaciones: ''
+    },
+
+    async init() {
+      await this.cargarProyecciones();
+    },
+
+    async cargarProyecciones() {
+      this.cargando = true;
+      try {
+        const token = sessionStorage.getItem('tw_token');
+        const r = await fetch('/api/cadenas/proyecciones/?ordering=horas_restantes', {
+          headers: { 'Authorization': 'Token ' + token }
+        });
+        const data = await r.json();
+        this.proyecciones = data.results || data;
+        const s = { total: 0, criticos: 0, atencion: 0, ok: 0 };
+        this.proyecciones.forEach(p => {
+          s.total++;
+          if (p.estado === 'CRITICO') s.criticos++;
+          else if (p.estado === 'ATENCION') s.atencion++;
+          else s.ok++;
+        });
+        this.stats = s;
+      } catch(e) { console.error('Error cargando cadenas:', e); }
+      finally { this.cargando = false; }
+    },
+
+    async recalcular() {
+      this.cargando = true;
+      try {
+        const token = sessionStorage.getItem('tw_token');
+        await fetch('/api/cadenas/proyecciones/recalcular/', {
+          method: 'POST',
+          headers: { 'Authorization': 'Token ' + token, 'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '' }
+        });
+        await this.cargarProyecciones();
+      } catch(e) { console.error(e); }
+      finally { this.cargando = false; }
+    },
+
+    abrirModal() {
+      this.errorMsg = '';
+      this.okMsg = '';
+      this.form = {
+        equipo_id: '', fecha: new Date().toISOString().slice(0,10), horometro: '',
+        tipo_cadena: 'spreader_principal', longitud_nominal_mm: '', longitud_medida_mm: '',
+        num_eslabones: 12, observaciones: ''
+      };
+      this.modalAbierto = true;
+    },
+
+    async guardarMedicion() {
+      this.guardando = true;
+      this.errorMsg = '';
+      this.okMsg = '';
+      try {
+        const token = sessionStorage.getItem('tw_token');
+        const payload = {
+          equipo: parseInt(this.form.equipo_id),
+          fecha: this.form.fecha,
+          horometro: this.form.horometro ? parseFloat(this.form.horometro) : null,
+          tipo_cadena: this.form.tipo_cadena,
+          longitud_nominal_mm: parseFloat(this.form.longitud_nominal_mm),
+          longitud_medida_mm: parseFloat(this.form.longitud_medida_mm),
+          num_eslabones: parseInt(this.form.num_eslabones) || 12,
+          observaciones: this.form.observaciones,
+        };
+        const r = await fetch('/api/cadenas/mediciones/', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Token ' + token,
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || ''
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!r.ok) {
+          const err = await r.json();
+          this.errorMsg = JSON.stringify(err);
+        } else {
+          this.okMsg = '✅ Medición registrada. Proyección actualizada.';
+          await this.cargarProyecciones();
+          setTimeout(() => { this.modalAbierto = false; }, 1500);
+        }
+      } catch(e) {
+        this.errorMsg = 'Error de conexión: ' + e.message;
+      } finally {
+        this.guardando = false;
+      }
+    }
+  }
+}
+</script>
+{% endblock %}

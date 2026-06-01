@@ -14,6 +14,15 @@ class ConfiguracionSistemaForm(forms.ModelForm):
             'limite_turbo_radial': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-navy-700 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500', 'step': '0.00001'}),
             'limite_turbo_axial': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-navy-700 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500', 'step': '0.00001'}),
             'umbral_alerta_turbo_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-navy-700 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500', 'step': '0.001'}),
+
+            # Frenos
+            'limite_freno_pastilla_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
+            'prof_fabrica_freno_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.1'}),
+            'umbral_alerta_freno_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
+
+            # Cadenas
+            'limite_elongacion_cadena_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-yellow-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500', 'step': '0.1'}),
+            'umbral_alerta_cadena_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-yellow-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500', 'step': '0.1'}),
         }
 
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm

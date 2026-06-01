@@ -1,4 +1,4 @@
-﻿{% extends "web/base.html" %}
+{% extends "web/base.html" %}
 {% block title %}Configuracion del Sistema{% endblock %}
 {% block content %}
 <div class="w-full max-w-4xl mx-auto space-y-6">
@@ -85,6 +85,55 @@
             <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Umbral de Alerta Temprana (0-1)</label>
             {{ form.umbral_alerta_turbo_pct }}
             <p class="text-[10px] text-gray-500">{{ form.umbral_alerta_turbo_pct.help_text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FRENOS -->
+      <div class="bg-navy-900/50 rounded-lg p-5 border border-red-900/30">
+        <h3 class="flex items-center gap-2 text-md font-bold text-red-400 mb-5 pb-2 border-b border-navy-700/50">
+          <span>🛑</span> Módulo Frenos (Kalmar T2 · Terberg · Konecranes)
+        </h3>
+        <div class="bg-yellow-900/10 border border-yellow-800/30 rounded-md p-3 mb-5 text-xs text-yellow-400">
+          ⚠️ <strong>Referencia técnica:</strong> Kalmar Ottawa T2 manual: mínimo 6.35 mm (0.25"). Modifique solo si dispone de documentación técnica del fabricante.
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Límite de Cambio — Pastilla (mm)</label>
+            {{ form.limite_freno_pastilla_mm }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_freno_pastilla_mm.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Espesor de Fábrica — Pastilla (mm)</label>
+            {{ form.prof_fabrica_freno_mm }}
+            <p class="text-[10px] text-gray-500">{{ form.prof_fabrica_freno_mm.help_text }}</p>
+          </div>
+          <div class="space-y-1.5 md:col-span-2">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Umbral de Alerta Temprana (0-1)</label>
+            {{ form.umbral_alerta_freno_pct }}
+            <p class="text-[10px] text-gray-500">{{ form.umbral_alerta_freno_pct.help_text }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CADENAS -->
+      <div class="bg-navy-900/50 rounded-lg p-5 border border-yellow-900/30">
+        <h3 class="flex items-center gap-2 text-md font-bold text-yellow-400 mb-5 pb-2 border-b border-navy-700/50">
+          <span>⛓️</span> Módulo Cadenas — Spreader (Taylor)
+        </h3>
+        <div class="bg-blue-900/10 border border-blue-800/30 rounded-md p-3 mb-5 text-xs text-blue-400">
+          ℹ️ <strong>Estándar industria ISO:</strong> Cadenas de carga — reemplazar al 3% de elongación. Alerta temprana recomendada: 1.5%.
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Límite de Elongación (%)</label>
+            {{ form.limite_elongacion_cadena_pct }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_elongacion_cadena_pct.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Umbral Alerta Temprana (%)</label>
+            {{ form.umbral_alerta_cadena_pct }}
+            <p class="text-[10px] text-gray-500">{{ form.umbral_alerta_cadena_pct.help_text }}</p>
           </div>
         </div>
       </div>

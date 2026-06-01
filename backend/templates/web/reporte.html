@@ -319,10 +319,160 @@
     {% endif %}
   </div>
 
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECCIÓN FRENOS                                 -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title frenos">🛑 Proyecciones — Frenos (Pastillas/Balatas)</div>
+
+    <div class="stats-row">
+      <div class="stat-box stat-total">
+        <div class="val">{{ stats_frenos.total }}</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-box stat-critico">
+        <div class="val">{{ stats_frenos.criticos }}</div>
+        <div class="lbl">Críticos</div>
+      </div>
+      <div class="stat-box stat-atencion">
+        <div class="val">{{ stats_frenos.atencion }}</div>
+        <div class="lbl">Atención</div>
+      </div>
+      <div class="stat-box stat-ok">
+        <div class="val">{{ stats_frenos.ok }}</div>
+        <div class="lbl">OK</div>
+      </div>
+    </div>
+
+    {% if proy_frenos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Espesor Mín. Actual</th>
+          <th>Posición Crítica</th>
+          <th>Tasa Desgaste</th>
+          <th>Hrs Restantes</th>
+          <th>Cambio Estimado</th>
+          <th>Última Medición</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proy_frenos %}
+        <tr>
+          <td class="mono" style="font-weight:700;">GPCO-{{ p.equipo.numero }}</td>
+          <td class="mono">{% if p.espesor_minimo_actual_mm %}{{ p.espesor_minimo_actual_mm|floatformat:2 }} mm{% else %}—{% endif %}</td>
+          <td>{{ p.posicion_critica|default:"—" }}</td>
+          <td class="mono">{% if p.tasa_desgaste_mm_1000h %}{{ p.tasa_desgaste_mm_1000h|floatformat:3 }} mm/1kh{% else %}—{% endif %}</td>
+          <td class="mono" style="font-weight:700;">
+            {% if p.horas_restantes >= 99000 %}Estable{% else %}{{ p.horas_restantes|floatformat:0 }} h{% endif %}
+          </td>
+          <td>{{ p.fecha_cambio_estimada|default:"—" }}</td>
+          <td>{{ p.ultima_medicion_fecha|default:"—" }}</td>
+          <td>
+            {% if p.estado == "CRITICO" %}
+              <span class="badge badge-critico">CRÍTICO</span>
+            {% elif p.estado == "ATENCION" %}
+              <span class="badge badge-atencion">ATENCIÓN</span>
+            {% else %}
+              <span class="badge badge-ok">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#718096; font-style:italic; padding:12px 0;">Sin proyecciones de frenos. Ingrese mediciones en el módulo de Frenos.</p>
+    {% endif %}
+    <p style="font-size:9px; color:#718096; margin-top:6px;">
+      Límite de cambio: {{ config.limite_freno_pastilla_mm }} mm · Profundidad de fábrica ref: {{ config.prof_fabrica_freno_mm }} mm · Umbral alerta: {{ config.umbral_alerta_freno_pct|floatformat:0 }}% desgaste
+      · Ref. Kalmar Ottawa T2 manual: mín 6.35 mm (0.25")
+    </p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- SECCIÓN CADENAS                                -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-title" style="border-left-color: #d69e2e;">⛓️ Proyecciones — Cadenas (Elongación Spreader)</div>
+
+    <div class="stats-row">
+      <div class="stat-box stat-total">
+        <div class="val">{{ stats_cadenas.total }}</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat-box stat-critico">
+        <div class="val">{{ stats_cadenas.criticos }}</div>
+        <div class="lbl">Críticos</div>
+      </div>
+      <div class="stat-box stat-atencion">
+        <div class="val">{{ stats_cadenas.atencion }}</div>
+        <div class="lbl">Atención</div>
+      </div>
+      <div class="stat-box stat-ok">
+        <div class="val">{{ stats_cadenas.ok }}</div>
+        <div class="lbl">OK</div>
+      </div>
+    </div>
+
+    {% if proy_cadenas %}
+    <table>
+      <thead>
+        <tr>
+          <th>Equipo</th>
+          <th>Tipo Cadena</th>
+          <th>Elongación Actual</th>
+          <th>L. Nominal</th>
+          <th>L. Actual</th>
+          <th>Tasa /1kh</th>
+          <th>Hrs Restantes</th>
+          <th>Reemplazo Est.</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in proy_cadenas %}
+        <tr>
+          <td class="mono" style="font-weight:700;">GPCO-{{ p.equipo.numero }}</td>
+          <td style="font-size:9px;">{{ p.tipo_cadena|default:"—" }}</td>
+          <td class="mono" style="font-weight:700; color:#c05621;">
+            {% if p.elongacion_actual_pct is not None %}{{ p.elongacion_actual_pct|floatformat:2 }}%{% else %}—{% endif %}
+          </td>
+          <td class="mono">{% if p.longitud_nominal_mm %}{{ p.longitud_nominal_mm|floatformat:1 }} mm{% else %}—{% endif %}</td>
+          <td class="mono">{% if p.longitud_actual_mm %}{{ p.longitud_actual_mm|floatformat:1 }} mm{% else %}—{% endif %}</td>
+          <td class="mono">{% if p.tasa_elongacion_pct_1000h %}+{{ p.tasa_elongacion_pct_1000h|floatformat:3 }}%{% else %}—{% endif %}</td>
+          <td class="mono" style="font-weight:700;">
+            {% if p.horas_restantes >= 99000 %}Estable{% else %}{{ p.horas_restantes|floatformat:0 }} h{% endif %}
+          </td>
+          <td>{{ p.fecha_reemplazo_estimada|default:"—" }}</td>
+          <td>
+            {% if p.estado == "CRITICO" %}
+              <span class="badge badge-critico">CRÍTICO</span>
+            {% elif p.estado == "ATENCION" %}
+              <span class="badge badge-atencion">ATENCIÓN</span>
+            {% else %}
+              <span class="badge badge-ok">OK</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#718096; font-style:italic; padding:12px 0;">Sin proyecciones de cadenas. Ingrese mediciones en el módulo de Cadenas.</p>
+    {% endif %}
+    <p style="font-size:9px; color:#718096; margin-top:6px;">
+      Límite elongación: {{ config.limite_elongacion_cadena_pct }}% · Umbral alerta: {{ config.umbral_alerta_cadena_pct }}%
+      · Estándar industria ISO / grúas Taylor — medir bajo tensión sobre 10-12 eslabones
+    </p>
+  </div>
+
   <!-- Pie de página -->
   <div class="footer">
     <span>TireWatch v1.0 · STI / Hanseatic Global Terminals</span>
-    <span>Límite cambio neumático: {{ config.limite_cambio_neumatico_mm }} mm · Límite turbo radial: {{ config.limite_turbo_radial }} mm · axial: {{ config.limite_turbo_axial }} mm</span>
+    <span>Lím. neumático: {{ config.limite_cambio_neumatico_mm }} mm · Lím. turbo rad: {{ config.limite_turbo_radial }} mm · ax: {{ config.limite_turbo_axial }} mm · Lím. freno: {{ config.limite_freno_pastilla_mm }} mm · Lím. cadena: {{ config.limite_elongacion_cadena_pct }}%</span>
   </div>
 
 </body>

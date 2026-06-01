@@ -12,6 +12,8 @@ urlpatterns = [
     path("api/equipos/", include("equipos.urls")),
     path("api/neumaticos/", include("neumaticos.urls")),
     path("api/turbos/", include("turbos.urls")),
+    path("api/frenos/", include("frenos.urls")),
+    path("api/cadenas/", include("cadenas.urls")),
     # Frontend web
     path("login/", login_view, name="login"),
     path("", include("web.urls")),

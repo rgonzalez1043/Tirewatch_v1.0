@@ -1,0 +1,950 @@
+{% extends "web/base.html" %}
+{% block title %}Frenos — Dashboard{% endblock %}
+
+{% block content %}
+
+{# ── JavaScript ANTES de x-data para que Alpine lo encuentre ── #}
+<script>
+function frenosDashboard() {
+  return {
+    // ── Estado general ─────────────────────────────────
+    equipos: [],          // Array de { equipo_numero, estado_global, componentes[] }
+    stats: { total: 0, criticos: 0, atencion: 0, ok: 0 },
+    config: { limite_mm: {{ config.limite_freno_pastilla_mm }}, prof_fabrica_mm: {{ config.prof_fabrica_freno_mm }}, umbral_pct: {{ config.umbral_alerta_freno_pct }} },
+    cargando: true,
+    expandidos: {},       // { equipo_numero: true/false }
+
+    // ── Modales ────────────────────────────────────────
+    modal: '',            // '' | 'medicion' | 'componente' | 'reemplazo'
+
+    // ── Modal: Registrar Medición ─────────────────────
+    medicionStep: 1,      // 1=seleccionar equipo, 2=ingresar espesores
+    medicionEquipoNum: '',
+    medicionFecha: new Date().toISOString().slice(0,10),
+    medicionHorometro: '',
+    medicionObservaciones: '',
+    medicionComponentes: [],     // componentes activos del equipo seleccionado
+    medicionEspesores: {},       // { componente_id: espesor_mm }
+    medicionCargando: false,
+    medicionGuardando: false,
+    medicionError: '',
+    medicionOk: '',
+
+    // ── Modal: Registrar Componente ───────────────────
+    compForm: {
+      equipo_id: '', posicion: 'del_izq', tipo_freno: 'disco',
+      espesor_fabrica_mm: '', fecha_instalacion: new Date().toISOString().slice(0,10),
+      horometro_instalacion: '', notas: ''
+    },
+    compGuardando: false,
+    compError: '',
+
+    // ── Modal: Registrar Reemplazo ────────────────────
+    replComponenteId: null,
+    replComponenteNombre: '',
+    replFechaRetiro: new Date().toISOString().slice(0,10),
+    replMotivo: 'desgaste',
+    replNuevoEspesor: '',
+    replNuevaFechaInst: new Date().toISOString().slice(0,10),
+    replHorometro: '',
+    replNotas: '',
+    replGuardando: false,
+    replError: '',
+
+    token() { return sessionStorage.getItem('tw_token'); },
+    hdrs(json=false) {
+      const h = { 'Authorization': 'Token ' + this.token() };
+      if (json) h['Content-Type'] = 'application/json';
+      const csrf = document.cookie.match(/csrftoken=([^;]+)/);
+      if (csrf) h['X-CSRFToken'] = csrf[1];
+      return h;
+    },
+
+    // ── Inicialización ─────────────────────────────────
+    async init() {
+      await this.cargar();
+    },
+
+    async cargar() {
+      this.cargando = true;
+      try {
+        const r = await fetch('/api/frenos/proyecciones/por-equipo/', {
+          headers: this.hdrs()
+        });
+        if (!r.ok) throw new Error('Error ' + r.status);
+        const data = await r.json();
+        this.equipos = data.equipos || [];
+        this.config = { ...this.config, ...data.config };
+        // Recalcular stats
+        let s = { total: 0, criticos: 0, atencion: 0, ok: 0 };
+        this.equipos.forEach(eq => {
+          s.total++;
+          if (eq.estado_global === 'CRITICO') s.criticos++;
+          else if (eq.estado_global === 'ATENCION') s.atencion++;
+          else s.ok++;
+        });
+        this.stats = s;
+      } catch(e) {
+        console.error('Error cargando frenos:', e);
+      } finally {
+        this.cargando = false;
+      }
+    },
+
+    toggleExpandido(num) {
+      this.expandidos[num] = !this.expandidos[num];
+    },
+
+    // ── MODAL: Medición ────────────────────────────────
+    abrirModalMedicion() {
+      this.medicionStep = 1;
+      this.medicionEquipoNum = '';
+      this.medicionFecha = new Date().toISOString().slice(0,10);
+      this.medicionHorometro = '';
+      this.medicionObservaciones = '';
+      this.medicionComponentes = [];
+      this.medicionEspesores = {};
+      this.medicionError = '';
+      this.medicionOk = '';
+      this.modal = 'medicion';
+    },
+
+    async buscarComponentes() {
+      if (!this.medicionEquipoNum) return;
+      this.medicionCargando = true;
+      this.medicionError = '';
+      try {
+        // Buscar equipo por número
+        const rEq = await fetch(`/api/equipos/?numero=${this.medicionEquipoNum}`, {
+          headers: this.hdrs()
+        });
+        const dataEq = await rEq.json();
+        const equipos = dataEq.results || dataEq;
+        if (!equipos.length) {
+          this.medicionError = `No se encontró el equipo GPCO-${this.medicionEquipoNum}`;
+          this.medicionComponentes = [];
+          return;
+        }
+        const equipoId = equipos[0].id;
+
+        // Buscar componentes activos de ese equipo
+        const rComp = await fetch(`/api/frenos/componentes/?equipo=${equipoId}&activo=true`, {
+          headers: this.hdrs()
+        });
+        const dataComp = await rComp.json();
+        this.medicionComponentes = dataComp.results || dataComp;
+
+        if (!this.medicionComponentes.length) {
+          this.medicionError = `El equipo GPCO-${this.medicionEquipoNum} no tiene componentes de freno registrados. Regístralos primero en "Gestionar Componentes".`;
+          return;
+        }
+
+        // Pre-cargar espesores con el último valor medido
+        this.medicionEspesores = {};
+        this.medicionComponentes.forEach(c => {
+          this.medicionEspesores[c.id] = c.espesor_actual_mm || '';
+        });
+        this.medicionStep = 2;
+      } catch(e) {
+        this.medicionError = 'Error buscando equipo: ' + e.message;
+      } finally {
+        this.medicionCargando = false;
+      }
+    },
+
+    colorEspesor(val) {
+      if (!val) return 'text-gray-400';
+      const v = parseFloat(val);
+      if (v <= this.config.limite_mm) return 'text-red-400';
+      const umbral = this.config.limite_mm + (this.config.prof_fabrica_mm - this.config.limite_mm) * (1 - this.config.umbral_pct);
+      if (v <= umbral) return 'text-yellow-400';
+      return 'text-green-400';
+    },
+
+    async guardarMedicion() {
+      this.medicionGuardando = true;
+      this.medicionError = '';
+      this.medicionOk = '';
+      try {
+        const equipos = this.medicionComponentes;
+        const equipoId = equipos[0]?.equipo;
+        const promesas = [];
+
+        for (const c of this.medicionComponentes) {
+          const esp = this.medicionEspesores[c.id];
+          if (!esp && esp !== 0) continue; // saltar vacíos
+          promesas.push(fetch('/api/frenos/mediciones/', {
+            method: 'POST',
+            headers: this.hdrs(true),
+            body: JSON.stringify({
+              componente: c.id,
+              equipo: equipoId,
+              fecha: this.medicionFecha,
+              horometro: this.medicionHorometro ? parseFloat(this.medicionHorometro) : null,
+              espesor_mm: parseFloat(esp),
+              observaciones: this.medicionObservaciones,
+            })
+          }));
+        }
+
+        const resultados = await Promise.all(promesas);
+        const errores = resultados.filter(r => !r.ok);
+        if (errores.length) {
+          const err = await errores[0].json();
+          this.medicionError = JSON.stringify(err);
+        } else {
+          this.medicionOk = `✅ ${promesas.length} medición(es) guardadas. Proyecciones actualizadas.`;
+          await this.cargar();
+          setTimeout(() => { this.modal = ''; }, 1800);
+        }
+      } catch(e) {
+        this.medicionError = 'Error: ' + e.message;
+      } finally {
+        this.medicionGuardando = false;
+      }
+    },
+
+    // ── MODAL: Registrar Componente ────────────────────
+    abrirModalComponente() {
+      this.compForm = {
+        equipo_id: '', posicion: 'del_izq', tipo_freno: 'disco',
+        espesor_fabrica_mm: '', fecha_instalacion: new Date().toISOString().slice(0,10),
+        horometro_instalacion: '', notas: ''
+      };
+      this.compError = '';
+      this.compGuardando = false;
+      this.modal = 'componente';
+    },
+
+    async buscarEquipoId(numero) {
+      const r = await fetch(`/api/equipos/?numero=${numero}`, { headers: this.hdrs() });
+      const d = await r.json();
+      const equipos = d.results || d;
+      return equipos.length ? equipos[0].id : null;
+    },
+
+    async guardarComponente() {
+      this.compGuardando = true;
+      this.compError = '';
+      try {
+        // Resolver equipo_id si se ingresó número
+        let equipoId = parseInt(this.compForm.equipo_id);
+        if (isNaN(equipoId)) {
+          this.compError = 'Ingresa el número del equipo';
+          return;
+        }
+        const eqId = await this.buscarEquipoId(equipoId);
+        if (!eqId) {
+          this.compError = `No se encontró el equipo GPCO-${equipoId}`;
+          return;
+        }
+
+        const payload = {
+          equipo: eqId,
+          posicion: this.compForm.posicion,
+          tipo_freno: this.compForm.tipo_freno,
+          espesor_fabrica_mm: parseFloat(this.compForm.espesor_fabrica_mm),
+          fecha_instalacion: this.compForm.fecha_instalacion || null,
+          horometro_instalacion: this.compForm.horometro_instalacion ? parseFloat(this.compForm.horometro_instalacion) : null,
+          notas: this.compForm.notas,
+        };
+
+        const r = await fetch('/api/frenos/componentes/', {
+          method: 'POST', headers: this.hdrs(true), body: JSON.stringify(payload)
+        });
+        if (!r.ok) {
+          const err = await r.json();
+          this.compError = JSON.stringify(err);
+        } else {
+          await this.cargar();
+          this.modal = '';
+        }
+      } catch(e) {
+        this.compError = 'Error: ' + e.message;
+      } finally {
+        this.compGuardando = false;
+      }
+    },
+
+    // ── MODAL: Reemplazo ────────────────────────────────
+    abrirModalReemplazo(compId, compNombre) {
+      this.replComponenteId = compId;
+      this.replComponenteNombre = compNombre;
+      this.replFechaRetiro = new Date().toISOString().slice(0,10);
+      this.replMotivo = 'desgaste';
+      this.replNuevoEspesor = this.config.prof_fabrica_mm || '';
+      this.replNuevaFechaInst = new Date().toISOString().slice(0,10);
+      this.replHorometro = '';
+      this.replNotas = '';
+      this.replError = '';
+      this.replGuardando = false;
+      this.modal = 'reemplazo';
+    },
+
+    async guardarReemplazo() {
+      this.replGuardando = true;
+      this.replError = '';
+      try {
+        const r = await fetch(`/api/frenos/componentes/${this.replComponenteId}/reemplazar/`, {
+          method: 'POST',
+          headers: this.hdrs(true),
+          body: JSON.stringify({
+            componente_id: this.replComponenteId,
+            fecha_retiro: this.replFechaRetiro,
+            motivo_retiro: this.replMotivo,
+            nuevo_espesor_fabrica_mm: parseFloat(this.replNuevoEspesor),
+            fecha_instalacion: this.replNuevaFechaInst,
+            horometro_instalacion: this.replHorometro ? parseFloat(this.replHorometro) : null,
+            notas: this.replNotas,
+          })
+        });
+        if (!r.ok) {
+          const err = await r.json();
+          this.replError = JSON.stringify(err);
+        } else {
+          await this.cargar();
+          this.modal = '';
+        }
+      } catch(e) {
+        this.replError = 'Error: ' + e.message;
+      } finally {
+        this.replGuardando = false;
+      }
+    },
+
+    // ── Helpers ─────────────────────────────────────────
+    estadoBadgeClass(estado) {
+      return {
+        'bg-red-900/40 text-red-400 border-red-700': estado === 'CRITICO',
+        'bg-yellow-900/40 text-yellow-400 border-yellow-700': estado === 'ATENCION',
+        'bg-green-900/40 text-green-400 border-green-700': estado === 'OK',
+      };
+    },
+    estadoRowClass(estado) {
+      return {
+        'border-l-2 border-red-600': estado === 'CRITICO',
+        'border-l-2 border-yellow-500': estado === 'ATENCION',
+        'border-l-0': estado === 'OK',
+      };
+    },
+    fmtHrs(h) {
+      if (!h || h >= 99000) return 'Estable';
+      return Math.round(h) + ' h';
+    },
+    fmtEspesor(mm) {
+      if (mm == null) return '—';
+      const color = mm <= this.config.limite_mm ? 'text-red-400 font-bold' : 'text-gray-300';
+      return `${mm.toFixed(2)} mm`;
+    },
+    barraDesgaste(pct) {
+      const p = Math.min(pct || 0, 100);
+      const color = p >= 90 ? '#f87171' : p >= 65 ? '#fbbf24' : '#4ade80';
+      return `width:${p}%; background:${color};`;
+    },
+  }
+}
+</script>
+
+{# ── Página principal ────────────────────────────────── #}
+<div class="w-full max-w-7xl mx-auto space-y-5" x-data="frenosDashboard()">
+
+  <!-- CABECERA -->
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h2 class="text-xl font-extrabold text-gray-100 flex items-center gap-2">
+        <span class="text-2xl">🛑</span> Frenos — Gestión de Desgaste
+      </h2>
+      <p class="text-xs text-gray-500 mt-1">
+        Kalmar T2 · Terberg · Konecranes &nbsp;·&nbsp;
+        Disco (delanteros) + Tambor (traseros) + Tambor de Aire (chasis)
+        &nbsp;·&nbsp; Límite cambio: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button @click="abrirModalComponente()" id="btn-nuevo-componente"
+        class="flex items-center gap-1.5 px-3 py-2 bg-navy-700 hover:bg-navy-600 text-gray-300 text-xs font-bold rounded-lg transition-all border border-navy-600">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Registrar Componente
+      </button>
+      <button @click="abrirModalMedicion()" id="btn-registrar-medicion"
+        class="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-all shadow shadow-red-900/40">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Registrar Medición
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS CARDS -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="bg-navy-800 border border-navy-700 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-blue-400" x-text="stats.total">—</div>
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Equipos con Frenos</div>
+    </div>
+    <div class="bg-gradient-to-br from-red-950/60 to-navy-800 border border-red-800/50 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-red-400" x-text="stats.criticos">—</div>
+      <div class="text-[10px] text-red-500 uppercase tracking-wider mt-1">Críticos</div>
+    </div>
+    <div class="bg-gradient-to-br from-yellow-950/40 to-navy-800 border border-yellow-800/40 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-yellow-400" x-text="stats.atencion">—</div>
+      <div class="text-[10px] text-yellow-500 uppercase tracking-wider mt-1">Atención</div>
+    </div>
+    <div class="bg-gradient-to-br from-green-950/30 to-navy-800 border border-green-800/30 rounded-lg p-4 text-center">
+      <div class="text-3xl font-black text-green-400" x-text="stats.ok">—</div>
+      <div class="text-[10px] text-green-500 uppercase tracking-wider mt-1">OK</div>
+    </div>
+  </div>
+
+  <!-- TABLA EQUIPOS -->
+  <div class="bg-navy-800 border border-navy-700 rounded-xl overflow-hidden">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
+      <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block"></span>
+        Estado de Frenos por Equipo
+      </h3>
+      <button @click="cargar()" :disabled="cargando"
+        class="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 text-gray-400 text-xs rounded-md transition-all disabled:opacity-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" :class="cargando ? 'animate-spin' : ''">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Actualizar
+      </button>
+    </div>
+
+    <!-- Estado vacío -->
+    <template x-if="!cargando && equipos.length === 0">
+      <div class="p-16 text-center">
+        <div class="text-5xl mb-4">🛑</div>
+        <p class="text-gray-400 font-semibold">Sin componentes de freno registrados</p>
+        <p class="text-gray-600 text-xs mt-2 max-w-sm mx-auto">
+          Primero registra los componentes de freno de cada equipo (posición, tipo y espesor de fábrica),
+          luego podrás ingresar mediciones y obtener análisis predictivos.
+        </p>
+        <button @click="abrirModalComponente()"
+          class="mt-5 px-5 py-2 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-all">
+          ⚙️ Registrar primer componente
+        </button>
+      </div>
+    </template>
+
+    <!-- Cargando -->
+    <template x-if="cargando">
+      <div class="p-10 text-center text-gray-500 text-sm">
+        <svg class="animate-spin w-6 h-6 mx-auto mb-2 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Cargando datos...
+      </div>
+    </template>
+
+    <!-- Lista de equipos -->
+    <template x-if="!cargando && equipos.length > 0">
+      <div>
+        <template x-for="eq in equipos" :key="eq.equipo_numero">
+          <div :class="estadoRowClass(eq.estado_global)" class="border-b border-navy-700/60 transition-all">
+
+            <!-- Fila resumen del equipo (clickable para expandir) -->
+            <div @click="toggleExpandido(eq.equipo_numero)"
+              class="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-navy-700/40 transition-colors select-none">
+              <div class="flex items-center gap-4">
+                <!-- Indicador de estado -->
+                <div :class="{
+                  'bg-red-500': eq.estado_global === 'CRITICO',
+                  'bg-yellow-500': eq.estado_global === 'ATENCION',
+                  'bg-green-500': eq.estado_global === 'OK'
+                }" class="w-2.5 h-2.5 rounded-full flex-shrink-0"></div>
+
+                <!-- Número de equipo -->
+                <div class="font-bold font-mono text-gray-100 text-sm">
+                  GPCO-<span x-text="eq.equipo_numero"></span>
+                </div>
+
+                <!-- Conteo de componentes -->
+                <div class="text-xs text-gray-500">
+                  <span x-text="eq.componentes.length"></span> freno(s) activo(s)
+                </div>
+
+                <!-- Indicadores de componentes críticos -->
+                <div class="hidden sm:flex items-center gap-1.5">
+                  <template x-for="c in eq.componentes.slice(0,6)" :key="c.id">
+                    <div :title="c.posicion_display + ' — ' + (c.espesor_actual_mm ? c.espesor_actual_mm.toFixed(2) + 'mm' : 'Sin medición')"
+                      :class="{
+                        'bg-red-500': c.estado === 'CRITICO',
+                        'bg-yellow-500': c.estado === 'ATENCION',
+                        'bg-green-500/80': c.estado === 'OK',
+                        'bg-navy-600': c.estado == null
+                      }"
+                      class="w-2 h-6 rounded-full transition-all">
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <!-- Badge estado global -->
+                <span :class="estadoBadgeClass(eq.estado_global)"
+                  class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                  x-text="eq.estado_global">
+                </span>
+                <!-- Chevron -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                  :class="expandidos[eq.equipo_numero] ? 'rotate-180' : ''" class="text-gray-500 transition-transform">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Detalle expandido: tabla de componentes -->
+            <div x-show="expandidos[eq.equipo_numero]" x-collapse class="overflow-hidden">
+              <div class="bg-navy-900/50 border-t border-navy-700/50">
+                <table class="w-full text-xs">
+                  <thead>
+                    <tr class="text-left border-b border-navy-700/50">
+                      <th class="px-5 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Posición</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Fábrica</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Actual</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider w-32">Desgaste</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tasa /1kh</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hrs Rest.</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Cambio Est.</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">N° Med.</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                      <th class="px-4 py-2.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="c in eq.componentes" :key="c.id">
+                      <tr class="border-b border-navy-700/30 hover:bg-navy-700/20 transition-colors">
+                        <td class="px-5 py-3">
+                          <div class="font-semibold text-gray-200" x-text="c.posicion_display"></div>
+                        </td>
+                        <td class="px-4 py-3">
+                          <span :class="{
+                            'text-blue-400': c.tipo_freno === 'disco',
+                            'text-orange-400': c.tipo_freno === 'tambor',
+                            'text-purple-400': c.tipo_freno === 'tambor_aire',
+                          }" x-text="c.tipo_freno_display"></span>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-gray-500"
+                          x-text="c.espesor_fabrica_mm ? c.espesor_fabrica_mm.toFixed(1) + ' mm' : '—'"></td>
+                        <td class="px-4 py-3 font-mono font-bold"
+                          :class="c.espesor_actual_mm != null && c.espesor_actual_mm <= config.limite_mm ? 'text-red-400' : 'text-gray-200'"
+                          x-text="c.espesor_actual_mm != null ? c.espesor_actual_mm.toFixed(2) + ' mm' : '—'"></td>
+                        <td class="px-4 py-3">
+                          <template x-if="c.desgaste_pct != null">
+                            <div>
+                              <div class="flex items-center gap-2">
+                                <div class="flex-1 h-1.5 bg-navy-700 rounded-full overflow-hidden">
+                                  <div :style="barraDesgaste(c.desgaste_pct)" class="h-full rounded-full transition-all"></div>
+                                </div>
+                                <span class="text-[10px] font-mono text-gray-400"
+                                  x-text="c.desgaste_pct.toFixed(1) + '%'"></span>
+                              </div>
+                            </div>
+                          </template>
+                          <template x-if="c.desgaste_pct == null">
+                            <span class="text-gray-600">—</span>
+                          </template>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-gray-500"
+                          x-text="c.tasa_desgaste_mm_1000h ? c.tasa_desgaste_mm_1000h.toFixed(3) : '—'"></td>
+                        <td class="px-4 py-3 font-mono font-bold"
+                          :class="c.horas_restantes < 200 ? 'text-red-400' : c.horas_restantes < 500 ? 'text-yellow-400' : 'text-green-400'"
+                          x-text="fmtHrs(c.horas_restantes)"></td>
+                        <td class="px-4 py-3 text-gray-500" x-text="c.fecha_cambio_estimada || '—'"></td>
+                        <td class="px-4 py-3 text-center text-gray-500" x-text="c.n_mediciones || 0"></td>
+                        <td class="px-4 py-3">
+                          <span :class="estadoBadgeClass(c.estado || 'OK')"
+                            class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                            x-text="c.estado || 'OK'"></span>
+                        </td>
+                        <td class="px-4 py-3">
+                          <button @click="abrirModalReemplazo(c.id, c.posicion_display + ' — GPCO-' + eq.equipo_numero)"
+                            class="px-2.5 py-1 bg-navy-700 hover:bg-orange-900/50 text-gray-400 hover:text-orange-400 text-[10px] font-bold rounded border border-navy-600 hover:border-orange-700 transition-all whitespace-nowrap"
+                            title="Registrar cambio de este freno">
+                            🔧 Cambiar
+                          </button>
+                        </td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+
+  <!-- INFO TÉCNICA -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+    <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
+      <span class="text-blue-400 text-base flex-shrink-0">🔵</span>
+      <div>
+        <div class="font-bold text-gray-300 mb-1">Disco (Delanteros)</div>
+        <div class="text-gray-500">Kalmar T2, Konecranes · Pastilla de disco ·
+          Límite: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong></div>
+      </div>
+    </div>
+    <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
+      <span class="text-orange-400 text-base flex-shrink-0">🟠</span>
+      <div>
+        <div class="font-bold text-gray-300 mb-1">Tambor (Traseros)</div>
+        <div class="text-gray-500">Kalmar T2 traseros, Terberg · Balata de tambor ·
+          Límite: <strong class="text-red-400">{{ config.limite_freno_pastilla_mm }} mm</strong></div>
+      </div>
+    </div>
+    <div class="bg-navy-800/60 border border-navy-700 rounded-lg p-4 flex items-start gap-3">
+      <span class="text-purple-400 text-base flex-shrink-0">🟣</span>
+      <div>
+        <div class="font-bold text-gray-300 mb-1">Tambor de Aire (Chasis)</div>
+        <div class="text-gray-500">Chasis portacontenedores · Accionamiento neumático ·
+          Mismo límite de espesor de balata</div>
+      </div>
+    </div>
+  </div>
+
+</div>{# /x-data #}
+
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# MODAL: REGISTRAR MEDICIÓN                                       #}
+{# ═══════════════════════════════════════════════════════════════ #}
+<div x-data="frenosDashboard()" id="modal-medicion-wrapper">
+<div x-show="modal === 'medicion'" x-cloak
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+  @keydown.escape.window="modal = ''">
+  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col" @click.outside="modal = ''">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700 flex-shrink-0">
+      <h3 class="text-base font-bold text-gray-200 flex items-center gap-2">
+        🛑 Registrar Medición de Frenos
+        <span x-show="medicionStep === 2" class="text-xs text-gray-500 font-normal"
+          x-text="'— GPCO-' + medicionEquipoNum"></span>
+      </h3>
+      <button @click="modal = ''" class="text-gray-500 hover:text-gray-300 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- STEP 1: Seleccionar equipo -->
+    <div x-show="medicionStep === 1" class="p-6 space-y-5">
+      <p class="text-sm text-gray-400">
+        Ingresa el número del equipo para ver sus frenos registrados y medir cada uno.
+      </p>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">N° de Equipo (GPCO-___)</label>
+          <input x-model="medicionEquipoNum" type="number" id="med-equipo-num" min="1"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            placeholder="Ej: 101" @keydown.enter="buscarComponentes()" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha Medición</label>
+          <input x-model="medicionFecha" type="date" id="med-fecha"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Horómetro del Equipo (h) — Opcional</label>
+        <input x-model="medicionHorometro" type="number" step="0.1" id="med-horometro"
+          class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+          placeholder="Ej: 14520" />
+      </div>
+      <div x-show="medicionError" class="p-3 bg-red-900/40 border border-red-700 rounded-lg text-red-400 text-sm" x-text="medicionError"></div>
+      <div class="flex justify-end">
+        <button @click="buscarComponentes()" :disabled="!medicionEquipoNum || medicionCargando"
+          class="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
+          <svg x-show="medicionCargando" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span x-text="medicionCargando ? 'Buscando...' : 'Continuar →'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Ingresar espesores por componente -->
+    <div x-show="medicionStep === 2" class="flex flex-col overflow-hidden flex-1">
+      <div class="overflow-y-auto flex-1 p-6 space-y-4">
+        <p class="text-xs text-gray-500">
+          Ingresa el espesor medido en el <strong class="text-gray-400">punto más delgado</strong> de cada componente.
+          Desgaste desigual indicia problemas de caliper o ajuste.
+        </p>
+
+        <!-- Tabla de componentes para medir -->
+        <div class="space-y-2">
+          <template x-for="c in medicionComponentes" :key="c.id">
+            <div class="flex items-center gap-3 bg-navy-900/70 border border-navy-700 rounded-lg px-4 py-3">
+              <!-- Indicador de tipo -->
+              <div :class="{
+                'bg-blue-500/20 text-blue-400': c.tipo_freno === 'disco',
+                'bg-orange-500/20 text-orange-400': c.tipo_freno === 'tambor',
+                'bg-purple-500/20 text-purple-400': c.tipo_freno === 'tambor_aire',
+              }" class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0">
+                <span x-text="c.tipo_freno === 'disco' ? 'D' : c.tipo_freno === 'tambor' ? 'T' : 'A'"></span>
+              </div>
+              <!-- Nombre de posición -->
+              <div class="flex-1">
+                <div class="text-sm font-semibold text-gray-200" x-text="c.posicion_display"></div>
+                <div class="text-[10px] text-gray-500" x-text="c.tipo_freno_display + ' · Fábrica: ' + (c.espesor_fabrica_mm || '?') + ' mm · Límite: {{ config.limite_freno_pastilla_mm }} mm'"></div>
+              </div>
+              <!-- Input de espesor -->
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <input :x-model="'medicionEspesores[' + c.id + ']'"
+                  @input="medicionEspesores[c.id] = $event.target.value"
+                  :value="medicionEspesores[c.id]"
+                  type="number" step="0.1" min="0.1"
+                  :placeholder="'Ej: ' + (c.espesor_fabrica_mm || 20)"
+                  :class="medicionEspesores[c.id] && parseFloat(medicionEspesores[c.id]) <= {{ config.limite_freno_pastilla_mm }} ? 'border-red-600 text-red-400' : 'border-navy-600 text-gray-200'"
+                  class="w-24 bg-navy-800 border rounded-lg py-2 px-2.5 text-sm font-mono text-right focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors" />
+                <span class="text-gray-500 text-xs">mm</span>
+              </div>
+              <!-- Estado actual -->
+              <div class="flex-shrink-0 w-16 text-right">
+                <template x-if="c.espesor_actual_mm != null">
+                  <span class="text-[10px] text-gray-500">
+                    Ant: <span x-text="c.espesor_actual_mm.toFixed(2)"></span>mm
+                  </span>
+                </template>
+                <template x-if="c.espesor_actual_mm == null">
+                  <span class="text-[10px] text-gray-600">Sin prev.</span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Observaciones Generales</label>
+          <textarea x-model="medicionObservaciones" id="med-obs" rows="2"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+            placeholder="Ruidos, desgaste desigual, humo, estado visual..."></textarea>
+        </div>
+
+        <div x-show="medicionError" class="p-3 bg-red-900/40 border border-red-700 rounded-lg text-red-400 text-sm" x-text="medicionError"></div>
+        <div x-show="medicionOk" class="p-3 bg-green-900/40 border border-green-700 rounded-lg text-green-400 text-sm" x-text="medicionOk"></div>
+      </div>
+
+      <!-- Footer del modal -->
+      <div class="flex justify-between items-center gap-3 px-6 py-4 border-t border-navy-700 flex-shrink-0">
+        <button @click="medicionStep = 1" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 bg-navy-700 hover:bg-navy-600 rounded-lg transition-all">
+          ← Volver
+        </button>
+        <button @click="guardarMedicion()" :disabled="medicionGuardando"
+          class="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
+          <svg x-show="medicionGuardando" class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span x-text="medicionGuardando ? 'Guardando...' : '✓ Guardar ' + medicionComponentes.length + ' medición(es)'"></span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# MODAL: REGISTRAR COMPONENTE                                     #}
+{# ═══════════════════════════════════════════════════════════════ #}
+<div x-data="frenosDashboard()" id="modal-componente-wrapper">
+<div x-show="modal === 'componente'" x-cloak
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+  @keydown.escape.window="modal = ''">
+  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-xl shadow-2xl" @click.outside="modal = ''">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
+      <h3 class="text-base font-bold text-gray-200">⚙️ Registrar Componente de Freno</h3>
+      <button @click="modal = ''" class="text-gray-500 hover:text-gray-300 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="bg-blue-900/20 border border-blue-800/40 rounded-lg p-3 text-xs text-blue-400">
+        ℹ️ Registra cada freno por posición y tipo. El sistema creará una proyección al ingresar las primeras mediciones.
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">N° de Equipo (GPCO-___)</label>
+          <input x-model="compForm.equipo_id" type="number" min="1" id="comp-equipo"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="Ej: 101" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Posición del Freno</label>
+          <select x-model="compForm.posicion" id="comp-posicion"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+            <option value="del_izq">Delantero Izquierdo</option>
+            <option value="del_der">Delantero Derecho</option>
+            <option value="tras_izq">Trasero Izquierdo</option>
+            <option value="tras_der">Trasero Derecho</option>
+            <option value="tras_izq_int">Trasero Izq. Interior</option>
+            <option value="tras_der_int">Trasero Der. Interior</option>
+            <option value="chasis_izq">Chasis Izquierdo</option>
+            <option value="chasis_der">Chasis Derecho</option>
+            <option value="medio_izq">Medio Izquierdo</option>
+            <option value="medio_der">Medio Derecho</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo de Freno</label>
+          <select x-model="compForm.tipo_freno" id="comp-tipo"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500">
+            <option value="disco">Disco (pastilla)</option>
+            <option value="tambor">Tambor (balata)</option>
+            <option value="tambor_aire">Tambor de Aire (balata)</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Espesor al Instalar (mm)</label>
+          <input x-model="compForm.espesor_fabrica_mm" type="number" step="0.1" min="1" id="comp-espesor"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="Ej: 20.0" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Fecha de Instalación</label>
+          <input x-model="compForm.fecha_instalacion" type="date" id="comp-fecha"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Horómetro al Instalar (h)</label>
+          <input x-model="compForm.horometro_instalacion" type="number" step="0.1" id="comp-horometro"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2.5 px-3 text-gray-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="Opcional" />
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Notas</label>
+        <textarea x-model="compForm.notas" id="comp-notas" rows="2"
+          class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-red-500"
+          placeholder="Marca, número de parte, observaciones..."></textarea>
+      </div>
+
+      <div x-show="compError" class="p-3 bg-red-900/40 border border-red-700 rounded-lg text-red-400 text-sm" x-text="compError"></div>
+
+      <div class="flex justify-end gap-3">
+        <button @click="modal = ''" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 bg-navy-700 rounded-lg transition-all">Cancelar</button>
+        <button @click="guardarComponente()" :disabled="compGuardando"
+          class="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50"
+          x-text="compGuardando ? 'Guardando...' : 'Registrar Componente'"></button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+
+{# ═══════════════════════════════════════════════════════════════ #}
+{# MODAL: REGISTRAR REEMPLAZO                                      #}
+{# ═══════════════════════════════════════════════════════════════ #}
+<div x-data="frenosDashboard()" id="modal-reemplazo-wrapper">
+<div x-show="modal === 'reemplazo'" x-cloak
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+  @keydown.escape.window="modal = ''">
+  <div class="bg-navy-800 border border-orange-900/50 rounded-2xl w-full max-w-lg shadow-2xl" @click.outside="modal = ''">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
+      <h3 class="text-base font-bold text-orange-400 flex items-center gap-2">
+        🔧 Registrar Reemplazo de Freno
+      </h3>
+      <button @click="modal = ''" class="text-gray-500 hover:text-gray-300">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div class="bg-orange-900/20 border border-orange-800/40 rounded-lg p-3 text-xs text-orange-400">
+        ⚠️ Registra el reemplazo de: <strong class="text-orange-300" x-text="replComponenteNombre"></strong><br>
+        Al confirmar: el freno actual quedará marcado como retirado (historia conservada) y
+        comenzará un nuevo componente desde el espesor de fábrica.
+      </div>
+
+      <!-- RETIRO del freno actual -->
+      <div class="space-y-3">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-navy-700 pb-2">Datos del Freno Retirado</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Fecha de Retiro</label>
+            <input x-model="replFechaRetiro" type="date" id="repl-fecha-retiro"
+              class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Motivo del Retiro</label>
+            <select x-model="replMotivo" id="repl-motivo"
+              class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500">
+              <option value="desgaste">Desgaste — Límite alcanzado</option>
+              <option value="daño">Daño físico / Fractura</option>
+              <option value="preventivo">Mantenimiento Preventivo</option>
+              <option value="otro">Otro (ver notas)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTALACIÓN del freno nuevo -->
+      <div class="space-y-3">
+        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-navy-700 pb-2">Datos del Freno Nuevo Instalado</p>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Espesor de Fábrica (mm)</label>
+            <input x-model="replNuevoEspesor" type="number" step="0.1" min="1" id="repl-nuevo-espesor"
+              class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-orange-500"
+              placeholder="Ej: 20.0" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] text-gray-500 uppercase tracking-wider">Fecha Instalación</label>
+            <input x-model="replNuevaFechaInst" type="date" id="repl-fecha-inst"
+              class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500" />
+          </div>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Horómetro al Instalar (h)</label>
+          <input x-model="replHorometro" type="number" step="0.1" id="repl-horometro"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-orange-500"
+            placeholder="Ej: 15200" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-[10px] text-gray-500 uppercase tracking-wider">Notas (N° de parte, marca, etc.)</label>
+          <textarea x-model="replNotas" id="repl-notas" rows="2"
+            class="w-full bg-navy-900 border border-navy-600 rounded-lg py-2 px-3 text-gray-200 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500"
+            placeholder="OEM vs aftermarket, número de parte, técnico que instaló..."></textarea>
+        </div>
+      </div>
+
+      <div x-show="replError" class="p-3 bg-red-900/40 border border-red-700 rounded-lg text-red-400 text-sm" x-text="replError"></div>
+
+      <div class="flex justify-end gap-3">
+        <button @click="modal = ''" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-200 bg-navy-700 rounded-lg transition-all">Cancelar</button>
+        <button @click="guardarReemplazo()" :disabled="replGuardando"
+          class="px-5 py-2.5 bg-orange-700 hover:bg-orange-600 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50"
+          x-text="replGuardando ? 'Procesando...' : '🔧 Confirmar Reemplazo'"></button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+{% endblock %}
