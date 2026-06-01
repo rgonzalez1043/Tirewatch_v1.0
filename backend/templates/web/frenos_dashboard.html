@@ -646,8 +646,9 @@ function frenosDashboard() {
 {# ═══════════════════════════════════════════════════════════════ #}
 <div x-show="modal === 'medicion'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-  @keydown.escape.window="modal = ''">
-  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col" @click.outside="modal = ''">
+  @keydown.escape.window="modal = ''"
+  @click.self="modal = ''">
+  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
 
     <!-- Header -->
     <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700 flex-shrink-0">
@@ -787,8 +788,9 @@ function frenosDashboard() {
 {# ═══════════════════════════════════════════════════════════════ #}
 <div x-show="modal === 'componente'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-  @keydown.escape.window="modal = ''">
-  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-xl shadow-2xl" @click.outside="modal = ''">
+  @keydown.escape.window="modal = ''"
+  @click.self="modal = ''">
+  <div class="bg-navy-800 border border-navy-700 rounded-2xl w-full max-w-xl shadow-2xl">
     <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
       <h3 class="text-base font-bold text-gray-200">⚙️ Registrar Componente de Freno</h3>
       <button @click="modal = ''" class="text-gray-500 hover:text-gray-300 transition-colors">
@@ -884,8 +886,9 @@ function frenosDashboard() {
 {# ═══════════════════════════════════════════════════════════════ #}
 <div x-show="modal === 'reemplazo'" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-  @keydown.escape.window="modal = ''">
-  <div class="bg-navy-800 border border-orange-900/50 rounded-2xl w-full max-w-lg shadow-2xl" @click.outside="modal = ''">
+  @keydown.escape.window="modal = ''"
+  @click.self="modal = ''">
+  <div class="bg-navy-800 border border-orange-900/50 rounded-2xl w-full max-w-lg shadow-2xl">
     <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
       <h3 class="text-base font-bold text-orange-400 flex items-center gap-2">
         🔧 Registrar Reemplazo de Freno

@@ -155,8 +155,9 @@
 <!-- ═══ MODAL: Registrar Medición de Cadena ═══ -->
 <div x-show="modalAbierto" x-cloak
   class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
-  @keydown.escape.window="modalAbierto = false">
-  <div class="bg-navy-800 border border-navy-700 rounded-xl w-full max-w-xl mx-4 shadow-2xl" @click.outside="modalAbierto = false">
+  @keydown.escape.window="modalAbierto = false"
+  @click.self="modalAbierto = false">
+  <div class="bg-navy-800 border border-navy-700 rounded-xl w-full max-w-xl mx-4 shadow-2xl">
     <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
       <h3 class="text-base font-bold text-gray-200 flex items-center gap-2">⛓️ Registrar Medición de Cadena</h3>
       <button @click="modalAbierto = false" class="text-gray-500 hover:text-gray-300">
