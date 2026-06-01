@@ -135,6 +135,17 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 CORS_ALLOW_CREDENTIALS = True
 
 # =============================================================================
+# API Externa — Horómetros de equipos
+# =============================================================================
+# Cambiar la URL base si la IP del servidor cambia
+HOROMETROS_API_BASE_URL = os.environ.get(
+    "HOROMETROS_API_BASE_URL",
+    "http://192.168.38.14:8009/vehiculos"
+)
+# Timeout en segundos para llamadas a la API de horómetros
+HOROMETROS_API_TIMEOUT = int(os.environ.get("HOROMETROS_API_TIMEOUT", "5"))
+
+# =============================================================================
 # i18n
 # =============================================================================
 LANGUAGE_CODE = "es-cl"

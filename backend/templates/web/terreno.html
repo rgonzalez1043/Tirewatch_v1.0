@@ -49,7 +49,7 @@
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
             <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Tipo Equipo</label>
-                <select x-model="form.tipo_equipo_codigo" @change="frenosComponentes = []; frenosEspesores = {}"
+                <select x-model="form.tipo_equipo_codigo" @change="frenosComponentes = []; frenosEspesores = {}; horometroInfo = ''"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none">
                     <option value="">— Tipo —</option>
                     <template x-for="t in tiposDisponibles()" :key="t.id">
@@ -62,7 +62,7 @@
             </div>
             <div>
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">N° Equipo</label>
-                <input type="number" x-model="form.equipo_numero" @change="frenosComponentes = []; frenosEspesores = {}"
+                <input type="number" x-model="form.equipo_numero" @change="frenosComponentes = []; frenosEspesores = {}; horometroInfo = ''"
                     class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 focus:border-blue-500 focus:outline-none"
                     placeholder="Ej: 101" />
             </div>
@@ -86,16 +86,48 @@
             <!-- Horómetro Motor (solo turbos) -->
             <div x-show="tipo === 'turbos'">
                 <label class="block text-xs text-purple-400 uppercase tracking-wider font-semibold mb-2">Horómetro Motor</label>
-                <input type="number" x-model="form.horometro_motor"
-                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
-                    placeholder="Hrs motor" />
+                <div class="flex gap-2">
+                    <input type="number" x-model="form.horometro_motor"
+                        class="flex-1 bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-purple-500 focus:outline-none"
+                        placeholder="Hrs motor" />
+                    <button @click="cargarHorometro('horometro_motor')"
+                        :disabled="cargandoHorometro || !form.tipo_equipo_codigo || !form.equipo_numero"
+                        class="flex items-center gap-1 px-3 py-2 bg-navy-700 hover:bg-navy-600 text-gray-300 text-xs font-bold rounded-lg border border-navy-600 transition-all disabled:opacity-40 whitespace-nowrap"
+                        title="Cargar horómetro desde API">
+                        <svg x-show="cargandoHorometro" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <svg x-show="!cargandoHorometro" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        API
+                    </button>
+                </div>
+                <p x-show="horometroInfo" class="text-[10px] text-green-400 mt-1 font-mono" x-text="horometroInfo"></p>
             </div>
             <!-- Horómetro Equipo (frenos y cadenas) -->
             <div x-show="tipo === 'frenos' || tipo === 'cadenas'">
                 <label class="block text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Horómetro Equipo <span class="text-gray-600">(opcional)</span></label>
-                <input type="number" x-model="form.horometro" step="0.1"
-                    class="w-full bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-blue-500 focus:outline-none"
-                    placeholder="Ej: 14520" />
+                <div class="flex gap-2">
+                    <input type="number" x-model="form.horometro" step="0.1"
+                        class="flex-1 bg-navy-950 border border-navy-700 rounded-lg px-4 py-3 text-base text-gray-200 font-mono focus:border-blue-500 focus:outline-none"
+                        placeholder="Ej: 14520" />
+                    <button @click="cargarHorometro('horometro')"
+                        :disabled="cargandoHorometro || !form.tipo_equipo_codigo || !form.equipo_numero"
+                        class="flex items-center gap-1 px-3 py-2 bg-navy-700 hover:bg-navy-600 text-gray-300 text-xs font-bold rounded-lg border border-navy-600 transition-all disabled:opacity-40 whitespace-nowrap"
+                        title="Cargar horómetro desde API">
+                        <svg x-show="cargandoHorometro" class="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        <svg x-show="!cargandoHorometro" xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        API
+                    </button>
+                </div>
+                <p x-show="horometroInfo" class="text-[10px] text-green-400 mt-1 font-mono" x-text="horometroInfo"></p>
             </div>
         </div>
 
@@ -458,6 +490,8 @@ function terreno() {
         toast: null,
         guardando: false,
         tiposEquipo: [],
+        cargandoHorometro: false,
+        horometroInfo: '',
 
         // Formulario base compartido
         form: {
@@ -544,6 +578,33 @@ function terreno() {
         showToast(msg, type = 'success') {
             this.toast = { msg, type };
             setTimeout(() => this.toast = null, 4000);
+        },
+
+        async cargarHorometro(campo) {
+            if (!this.form.tipo_equipo_codigo || !this.form.equipo_numero) {
+                this.showToast('Selecciona tipo y número de equipo primero', 'error');
+                return;
+            }
+            this.cargandoHorometro = true;
+            this.horometroInfo = '';
+            try {
+                const r = await fetch(
+                    `/api/equipos/horometro/?tipo=${this.form.tipo_equipo_codigo}&numero=${this.form.equipo_numero}`,
+                    { headers: this.hdrs() }
+                );
+                const data = await r.json();
+                if (!r.ok) {
+                    this.showToast(data.error || 'API de horómetros no disponible', 'error');
+                    return;
+                }
+                this.form[campo] = data.horometro;
+                this.horometroInfo = `${data.codigo_externo} → ${data.horometro.toLocaleString()} h · ${data.fecha}`;
+                this.showToast(`✅ Horómetro cargado: ${data.horometro.toLocaleString()} h`);
+            } catch(e) {
+                this.showToast('Error conectando con API de horómetros', 'error');
+            } finally {
+                this.cargandoHorometro = false;
+            }
         },
 
         // Solo GPCO, TETR, CHA — equipos móviles de terreno

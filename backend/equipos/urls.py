@@ -9,4 +9,5 @@ router.register("marcas", views.MarcaComponenteViewSet, basename="marca-componen
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("horometro/", views.horometro_externo, name="horometro-externo"),
 ]
