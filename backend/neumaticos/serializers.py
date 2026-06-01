@@ -38,6 +38,7 @@ class MedicionCreateSerializer(serializers.ModelSerializer):
         fields = [
             "equipo_numero", "tipo_equipo_codigo",
             "fecha", "tipo", "marca_nombre",
+            "horometro",
             "h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8",
             "d1", "d2",
             "horometro", "observaciones",

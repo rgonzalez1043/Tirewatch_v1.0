@@ -1,14 +1,15 @@
 """
 Motor de Análisis de Desgaste de Neumáticos
 ============================================
-Migración de la lógica del notebook Proyección_Neumaticos.ipynb
-a un servicio reutilizable en Django.
+Calcula tasas de desgaste y proyecta fechas/horas de cambio.
 
-Flujo:
-1. Toma mediciones de la BD
-2. Calcula tasas de desgaste por marca y posición
-3. Proyecta fechas de cambio por equipo
-4. Guarda resultados en TasaDesgaste y Proyeccion
+Jerarquía de precisión en el cálculo de tasa:
+  1. Regresión lineal (horómetro, mm) por equipo — MÁS PRECISO
+     Requiere ≥ 2 mediciones con horómetro para ese equipo.
+  2. Tasa de flota por marca usando horómetros cuando disponibles
+     Usa dh = h2 - h1 cuando ambas mediciones tienen horómetro.
+  3. Tasa de flota por marca usando días × horas_diarias_promedio
+     Fallback cuando no hay horómetros.
 """
 from datetime import timedelta
 
@@ -16,17 +17,34 @@ from .models import Medicion, TasaDesgaste, Proyeccion
 from equipos.models import Equipo
 from core.models import ConfiguracionSistema
 
-
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+def _regresion_lineal(puntos):
+    """
+    Regresión lineal mínimos cuadrados sobre pares (x, y).
+    Retorna la pendiente (dy/dx). Negativa = desgaste cuando y=mm y x=horas.
+    Necesita ≥ 2 puntos.
+    """
+    n = len(puntos)
+    if n < 2:
+        return None
+    sum_x = sum(p[0] for p in puntos)
+    sum_y = sum(p[1] for p in puntos)
+    sum_xy = sum(p[0] * p[1] for p in puntos)
+    sum_x2 = sum(p[0] ** 2 for p in puntos)
+    denom = n * sum_x2 - sum_x ** 2
+    if abs(denom) < 1e-9:
+        return None
+    return (n * sum_xy - sum_x * sum_y) / denom
+
+
 class MotorAnalisis:
-    """Motor de cálculo de desgaste y proyecciones"""
+    """Motor de cálculo de desgaste y proyecciones para neumáticos."""
 
     def __init__(self):
-        # Fallback a valores por defecto si la tabla de config aún no existe (ej. primeras migraciones)
         try:
             config = ConfiguracionSistema.load()
             self.limite_cambio = config.limite_cambio_neumatico_mm
@@ -39,9 +57,6 @@ class MotorAnalisis:
             self.horas_diarias = 12.5
             self.prof_fabrica = 40.0
 
-    # =========================================================================
-    # POSICIONES POR TIPO
-    # =========================================================================
     POSICIONES = {
         "traccion": ["h1", "h2", "h3", "h4", "h5", "h6", "h7", "h8"],
         "direccion": ["d1", "d2"],
@@ -54,12 +69,14 @@ class MotorAnalisis:
         return getattr(medicion, pos, None)
 
     # =========================================================================
-    # 1. CALCULAR TASAS DE DESGASTE
+    # 1. CALCULAR TASAS DE DESGASTE DE FLOTA (mm/hora)
     # =========================================================================
     def calcular_tasas(self, tipo="traccion"):
         """
-        Calcula tasas de desgaste por marca y posición.
-        Retorna dict: {marca: {posicion: tasa_mm_dia}}
+        Calcula tasas de desgaste por marca y posición en mm/hora.
+
+        Usa horómetros reales cuando están disponibles en pares consecutivos.
+        Cuando no hay horómetro, convierte días × horas_diarias_promedio.
         """
         posiciones = self._get_posiciones(tipo)
         mediciones = (
@@ -69,31 +86,48 @@ class MotorAnalisis:
             .order_by("equipo", "fecha")
         )
 
-        # Agrupar por equipo
         por_equipo = {}
         for m in mediciones:
             eq_id = m.equipo_id
             if eq_id not in por_equipo:
-                por_equipo[eq_id] = []
-            por_equipo[eq_id].append(m)
+                por_equipo[eq_id] = {"equipo": m.equipo, "mediciones": []}
+            por_equipo[eq_id]["mediciones"].append(m)
 
-        # Acumular desgaste por marca
-        acum_marcas = {}  # {marca: {pos: {mm, dias, n}}}
-        acum_global = {}  # {pos: {mm, dias}}
+        acum_marcas = {}   # {marca: {pos: {mm, horas, n, n_horometro}}}
+        acum_global = {}   # {pos: {mm, horas}}
 
-        for eq_id, historial in por_equipo.items():
+        for eq_id, data in por_equipo.items():
+            equipo = data["equipo"]
+            historial = data["mediciones"]
+            horas_dia = equipo.horas_operacion_diaria or self.horas_diarias
+
             for i in range(1, len(historial)):
                 m_act = historial[i]
                 m_ant = historial[i - 1]
-                dt = (m_act.fecha - m_ant.fecha).days
 
-                if dt <= 0:
+                # Intervalo en horas: horómetro real si disponible, else días × horas/día
+                usa_horometro = (
+                    m_act.horometro is not None
+                    and m_ant.horometro is not None
+                    and m_act.horometro > m_ant.horometro
+                )
+                if usa_horometro:
+                    dh = m_act.horometro - m_ant.horometro
+                else:
+                    dt = (m_act.fecha - m_ant.fecha).days
+                    if dt <= 0:
+                        continue
+                    dh = dt * horas_dia
+
+                if dh <= 0:
                     continue
 
                 marca = m_act.marca_nombre.upper()
-
                 if marca not in acum_marcas:
                     acum_marcas[marca] = {}
+
+                # Umbral pinchazo en mm/h
+                filtro_hora = self.filtro_pinchazo / (horas_dia or self.horas_diarias)
 
                 for pos in posiciones:
                     val_act = self._get_valor(m_act, pos)
@@ -103,52 +137,56 @@ class MotorAnalisis:
                         continue
 
                     desgaste = val_act - val_ant
+                    tasa_hora = desgaste / dh  # negativa = desgaste
 
-                    # Filtrar: solo desgaste real (negativo) y tasa no excesiva (pinchazo)
-                    # Usamos tasa mm/día en vez de valor absoluto para no descartar
-                    # intervalos largos entre mediciones con desgaste normal acumulado
-                    tasa_diaria = desgaste / dt  # negativa = desgaste
-                    if desgaste < 0 and tasa_diaria > self.filtro_pinchazo:
-                        # Por marca
+                    if desgaste < 0 and tasa_hora > filtro_hora:
                         if pos not in acum_marcas[marca]:
-                            acum_marcas[marca][pos] = {"mm": 0, "dias": 0, "n": 0}
+                            acum_marcas[marca][pos] = {"mm": 0, "horas": 0, "n": 0, "n_horometro": 0}
                         acum_marcas[marca][pos]["mm"] += desgaste
-                        acum_marcas[marca][pos]["dias"] += dt
+                        acum_marcas[marca][pos]["horas"] += dh
                         acum_marcas[marca][pos]["n"] += 1
+                        if usa_horometro:
+                            acum_marcas[marca][pos]["n_horometro"] += 1
 
-                        # Global
                         if pos not in acum_global:
-                            acum_global[pos] = {"mm": 0, "dias": 0}
+                            acum_global[pos] = {"mm": 0, "horas": 0}
                         acum_global[pos]["mm"] += desgaste
-                        acum_global[pos]["dias"] += dt
+                        acum_global[pos]["horas"] += dh
 
-        # Calcular tasas
-        tasa_global = {}
-        for pos, data in acum_global.items():
-            tasa_global[pos] = data["mm"] / data["dias"] if data["dias"] > 0 else 0
+        # Tasas en mm/hora (negativas = desgaste)
+        tasa_global = {
+            pos: d["mm"] / d["horas"]
+            for pos, d in acum_global.items()
+            if d["horas"] > 0
+        }
 
         tasas_marca = {}
-        for marca, posiciones_data in acum_marcas.items():
+        for marca, pos_data in acum_marcas.items():
             tasas_marca[marca] = {}
             for pos in posiciones:
-                if pos in posiciones_data and posiciones_data[pos]["dias"] > 0:
-                    tasas_marca[marca][pos] = posiciones_data[pos]["mm"] / posiciones_data[pos]["dias"]
+                if pos in pos_data and pos_data[pos]["horas"] > 0:
+                    tasas_marca[marca][pos] = pos_data[pos]["mm"] / pos_data[pos]["horas"]
                 else:
                     tasas_marca[marca][pos] = tasa_global.get(pos, 0)
 
         return {
-            "tasas_marca": tasas_marca,
-            "tasa_global": tasa_global,
+            "tasas_marca": tasas_marca,    # mm/hora (negativo)
+            "tasa_global": tasa_global,    # mm/hora (negativo)
             "acum_marcas": acum_marcas,
             "acum_global": acum_global,
         }
 
     # =========================================================================
-    # 2. PROYECTAR EQUIPO
+    # 2. PROYECTAR EQUIPO (con regresión por equipo si hay horómetros)
     # =========================================================================
     def proyectar_equipo(self, equipo, tipo, tasas_marca, tasa_global):
         """
-        Proyecta la fecha de cambio para un equipo específico.
+        Proyecta la fecha/horas de cambio para un equipo.
+
+        Prioridad:
+          1. Regresión lineal propia del equipo en (horómetro, mm)
+             → más precisa, usa el historial real de ese equipo
+          2. Tasa de flota por marca (calculada con horómetros cuando disponibles)
         """
         posiciones = self._get_posiciones(tipo)
 
@@ -158,46 +196,52 @@ class MotorAnalisis:
             .order_by("fecha")
         )
 
-        if len(historial) == 0:
+        if not historial:
             return None
 
         ultimo = historial[-1]
         marca = ultimo.marca_nombre.upper()
-        tasas = tasas_marca.get(marca, tasa_global)
         horas_dia = equipo.horas_operacion_diaria or self.horas_diarias
 
         mejor_pos = None
         min_horas = float("inf")
 
         for pos in posiciones:
-            val = self._get_valor(ultimo, pos)
-            if val is None:
+            val_actual = self._get_valor(ultimo, pos)
+            if val_actual is None:
                 continue
 
-            tasa_dia = tasas.get(pos, tasa_global.get(pos, 0))
-            if tasa_dia >= 0:
-                continue  # No hay desgaste
+            # Intentar regresión por equipo con horómetros
+            puntos_h = [
+                (m.horometro, self._get_valor(m, pos))
+                for m in historial
+                if m.horometro is not None and self._get_valor(m, pos) is not None
+            ]
+            tasa_hora = _regresion_lineal(puntos_h)  # mm/hora, negativo
 
-            # Protección contra división por cero
-            if horas_dia <= 0:
-                logger.warning(f"Equipo {equipo.numero}: horas_diarias=0, usando fallback {self.horas_diarias}")
-                horas_dia = self.horas_diarias
+            # Fallback a tasa de flota
+            if tasa_hora is None or tasa_hora >= 0:
+                tasas_flota = tasas_marca.get(marca, tasa_global)
+                tasa_hora = tasas_flota.get(pos, tasa_global.get(pos, 0))
 
-            tasa_hora = tasa_dia / horas_dia
-            horas_restantes = (self.limite_cambio - val) / tasa_hora
+            if tasa_hora >= 0:
+                continue  # Sin desgaste medible
+
+            margen_mm = val_actual - self.limite_cambio
+            if margen_mm <= 0:
+                horas_restantes = 0.0
+            else:
+                horas_restantes = margen_mm / abs(tasa_hora)
 
             if horas_restantes < min_horas:
                 min_horas = horas_restantes
                 mejor_pos = pos.upper()
 
-        # Validación robusta: descartar infinitos y valores no válidos
-        if mejor_pos is None or min_horas == float("inf") or min_horas != min_horas:  # NaN check
+        if mejor_pos is None or min_horas == float("inf") or min_horas != min_horas:
             return None
 
-        # Acotar horas restantes a un máximo razonable (10 años ≈ 87600 horas)
-        MAX_HORAS_RAZONABLES = 87600.0
-        if min_horas > MAX_HORAS_RAZONABLES:
-            min_horas = MAX_HORAS_RAZONABLES
+        MAX_HORAS = 87600.0  # 10 años
+        min_horas = min(min_horas, MAX_HORAS)
 
         dias_restantes = min_horas / horas_dia
         fecha_cambio = ultimo.fecha + timedelta(days=int(dias_restantes))
@@ -208,17 +252,17 @@ class MotorAnalisis:
             "marca": marca,
             "posicion_critica": mejor_pos,
             "valor_actual_mm": self._get_valor(ultimo, mejor_pos.lower()) or 0,
-            "horas_restantes": abs(min_horas),
+            "horas_restantes": min_horas,
             "fecha_cambio": fecha_cambio,
             "fecha_ultima_medicion": ultimo.fecha,
-            "historial": historial,
+            "ultimo_horometro": ultimo.horometro,
         }
 
     # =========================================================================
-    # 3. GENERAR DATOS PARA GRÁFICO
+    # 3. DATOS PARA GRÁFICO (series históricas + proyección)
     # =========================================================================
     def datos_grafico(self, equipo, tipo, tasas_marca, tasa_global):
-        """Genera series de datos para gráficos (historial + proyección)"""
+        """Genera series de datos para gráficos (historial real + proyección)."""
         posiciones = self._get_posiciones(tipo)
 
         historial = list(
@@ -232,7 +276,6 @@ class MotorAnalisis:
 
         series = []
 
-        # Datos reales
         for m in historial:
             valores = {}
             for pos in posiciones:
@@ -241,21 +284,19 @@ class MotorAnalisis:
                     valores[pos.upper()] = val
             series.append({
                 "fecha": m.fecha.isoformat(),
+                "horometro": m.horometro,
                 "tipo": "real",
                 "valores": valores,
             })
 
-        # Proyección
         ultimo = historial[-1]
         marca = ultimo.marca_nombre.upper()
         tasas = tasas_marca.get(marca, tasa_global)
+        horas_dia = equipo.horas_operacion_diaria or self.horas_diarias
 
-        # Usar meses de proyección desde configuración del sistema
         try:
-            config = ConfiguracionSistema.load()
-            # Usamos el límite del settings TIREWATCH como fallback
             from django.conf import settings
-            meses_max = settings.TIREWATCH.get("MESES_PROYECCION_MAX", 48)
+            meses_max = getattr(settings, "TIREWATCH", {}).get("MESES_PROYECCION_MAX", 48)
         except Exception:
             meses_max = 48
 
@@ -269,13 +310,15 @@ class MotorAnalisis:
                 if val is None:
                     continue
                 tasa = tasas.get(pos, tasa_global.get(pos, 0))
-                val_proy = val + tasa * 30 * mes
+                horas_transcurridas = mes * 30 * horas_dia
+                val_proy = val + tasa * horas_transcurridas
                 valores[pos.upper()] = round(val_proy, 2)
                 if val_proy <= self.limite_cambio:
                     alguno_bajo = True
 
             series.append({
                 "fecha": fecha_proy.isoformat(),
+                "horometro": None,
                 "tipo": "limite" if alguno_bajo else "proyeccion",
                 "valores": valores,
             })
@@ -291,40 +334,39 @@ class MotorAnalisis:
     def ejecutar_analisis(self, tipo="traccion"):
         """
         Ejecuta el análisis completo:
-        - Calcula tasas
+        - Calcula tasas de flota en mm/hora (con horómetros reales cuando disponibles)
         - Guarda en TasaDesgaste
-        - Proyecta todos los equipos
+        - Proyecta todos los equipos (regresión propia o tasa de flota)
         - Guarda en Proyeccion
         """
         resultado = self.calcular_tasas(tipo)
         tasas_marca = resultado["tasas_marca"]
         tasa_global = resultado["tasa_global"]
         acum_marcas = resultado["acum_marcas"]
+        horas_dia = self.horas_diarias
 
-        # Guardar tasas
+        # Guardar tasas de flota
         TasaDesgaste.objects.filter(tipo=tipo).delete()
         for marca, posiciones_data in tasas_marca.items():
-            horas_dia = self.horas_diarias
-            for pos, tasa_dia in posiciones_data.items():
-                tasa_abs = abs(tasa_dia)
-                tasa_hora = tasa_abs / horas_dia
+            for pos, tasa_hora in posiciones_data.items():
+                tasa_abs = abs(tasa_hora)
                 acum = acum_marcas.get(marca, {}).get(pos, {})
 
                 TasaDesgaste.objects.create(
                     marca_nombre=marca,
                     tipo=tipo,
                     posicion=pos.upper(),
-                    tasa_mm_dia=tasa_abs,
-                    tasa_mm_hora=tasa_hora,
-                    tasa_mm_100h=tasa_hora * 100,
+                    tasa_mm_hora=tasa_abs,
+                    tasa_mm_dia=tasa_abs * horas_dia,
+                    tasa_mm_100h=tasa_abs * 100,
                     total_mm_acum=abs(acum.get("mm", 0)),
-                    total_dias_acum=acum.get("dias", 0),
+                    total_dias_acum=acum.get("horas", 0) / (horas_dia or 1),
                     n_mediciones=acum.get("n", 0),
                 )
 
         # Proyectar equipos
         Proyeccion.objects.filter(tipo=tipo).delete()
-        equipos = Equipo.objects.all()
+        equipos = Equipo.objects.select_related("tipo").all()
         proyecciones = []
 
         for equipo in equipos:
@@ -345,8 +387,20 @@ class MotorAnalisis:
 
         Proyeccion.objects.bulk_create(proyecciones)
 
+        n_horometro = sum(
+            acum_marcas.get(m, {}).get(p, {}).get("n_horometro", 0)
+            for m in acum_marcas for p in acum_marcas[m]
+        )
+        n_total = sum(
+            acum_marcas.get(m, {}).get(p, {}).get("n", 0)
+            for m in acum_marcas for p in acum_marcas[m]
+        )
+
         return {
             "tasas_calculadas": sum(len(v) for v in tasas_marca.values()),
             "equipos_analizados": len(equipos),
             "proyecciones_generadas": len(proyecciones),
+            "pares_con_horometro": n_horometro,
+            "pares_total": n_total,
+            "pct_horometro": round(n_horometro / n_total * 100, 1) if n_total else 0,
         }

@@ -117,9 +117,9 @@ def importar_excel(archivo, usuario=None):
             if valores_h:
                 equipo, created = Equipo.objects.get_or_create(
                     numero=id_equipo,
+                    tipo=tipo_equipo,       # identidad única: (numero, tipo)
                     defaults={
-                        "tipo": tipo_equipo,
-                        "nombre": f"Portacontenedor {id_equipo}",
+                        "nombre": f"GPCO-{id_equipo}",
                     }
                 )
                 if created:
@@ -174,9 +174,9 @@ def importar_excel(archivo, usuario=None):
                 if valores_d:
                     equipo, created = Equipo.objects.get_or_create(
                         numero=id_equipo,
+                        tipo=tipo_equipo,   # identidad única: (numero, tipo)
                         defaults={
-                            "tipo": tipo_equipo,
-                            "nombre": f"Portacontenedor {id_equipo}",
+                            "nombre": f"GPCO-{id_equipo}",
                         }
                     )
                     if created:
