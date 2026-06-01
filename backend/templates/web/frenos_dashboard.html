@@ -2,8 +2,11 @@
 {% block title %}Frenos — Dashboard{% endblock %}
 
 {% block content %}
+{% load l10n %}
 
 {# ── JavaScript ANTES de x-data para que Alpine lo encuentre ── #}
+{# localize off: los floats dentro de JS deben usar punto decimal, no coma (es-cl) #}
+{% localize off %}
 <script>
 function frenosDashboard() {
   return {
@@ -358,6 +361,7 @@ function frenosDashboard() {
   }
 }
 </script>
+{% endlocalize %}
 
 {# ── Página principal ────────────────────────────────── #}
 <div class="w-full max-w-7xl mx-auto space-y-5" x-data="frenosDashboard()">
