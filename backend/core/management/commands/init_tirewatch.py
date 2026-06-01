@@ -31,20 +31,21 @@ class Command(BaseCommand):
             status = "CREADO" if created else "existe"
             self.stdout.write(f"  Departamento: {nombre} [{status}]")
 
-        # Tipos de equipo
+        # Tipos de equipo — Flota STI / Hanseatic Global Terminals
+        # GPCO: Portacontenedor / Reach Stacker (mismo código para ambos)
+        # TETR: Terminal Tractor (tractocamión de terminal)
         tipos = [
-            ("Portacontenedor", "PC"),
-            ("RTG", "RTG"),
-            ("STS", "STS"),
-            ("Reach Stacker", "RS"),
-            ("Terminal Tractor", "TT"),
+            ("Portacontenedor / Reach Stacker", "GPCO"),
+            ("Terminal Tractor", "TETR"),
+            ("RTG (Rubber Tyre Gantry)", "RTG"),
+            ("STS (Ship To Shore)", "STS"),
         ]
         for nombre, codigo in tipos:
             obj, created = TipoEquipo.objects.get_or_create(
                 codigo=codigo, defaults={"nombre": nombre}
             )
             status = "CREADO" if created else "existe"
-            self.stdout.write(f"  Tipo equipo: {nombre} [{status}]")
+            self.stdout.write(f"  Tipo equipo: {nombre} ({codigo}) [{status}]")
 
         # Marcas de neumáticos
         marcas_neum = [
