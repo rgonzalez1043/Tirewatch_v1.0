@@ -182,6 +182,18 @@ LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
 # =============================================================================
+# PRODUCCION — Red interna (HTTP, sin HTTPS)
+# Silenciar advertencias de SSL que no aplican en intranet
+# =============================================================================
+if not DEBUG:
+    SILENCED_SYSTEM_CHECKS = [
+        "security.W004",   # HSTS — no aplica en HTTP intranet
+        "security.W008",   # SSL redirect — no hay HTTPS en intranet
+        "security.W012",   # SESSION_COOKIE_SECURE — HTTP only
+        "security.W016",   # CSRF_COOKIE_SECURE — HTTP only
+    ]
+
+# =============================================================================
 # TIREWATCH CONFIG
 # =============================================================================
 TIREWATCH = {
