@@ -32,11 +32,11 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py init_tirewatch &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py runserver 0.0.0.0:8011"
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "8011:8011"
     environment:
       - DJANGO_DEBUG=True
       - DJANGO_SECRET_KEY=dev-secret-key-cambiar-en-produccion

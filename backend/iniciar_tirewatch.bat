@@ -17,5 +17,5 @@ REM Iniciar servidor Waitress (WSGI para Windows)
 REM --host=0.0.0.0  : acepta conexiones de la red local
 REM --port=8000     : cambia si necesitas otro puerto
 REM --threads=4     : conexiones paralelas (ajusta segun CPU del servidor)
-echo Iniciando TireWatch en puerto 8000...
-python -m waitress --host=0.0.0.0 --port=8000 --threads=4 tirewatch.wsgi:application
+echo Iniciando TireWatch en puerto 8011...
+python -m waitress --host=0.0.0.0 --port=8011 --threads=4 tirewatch.wsgi:application
