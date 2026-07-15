@@ -92,7 +92,6 @@ class ProyeccionFrenoSerializer(serializers.ModelSerializer):
 
 class ReemplazoFrenoSerializer(serializers.Serializer):
     """Payload para registrar el reemplazo de un componente de freno."""
-    componente_id = serializers.IntegerField()
     fecha_retiro = serializers.DateField()
     motivo_retiro = serializers.ChoiceField(choices=ComponenteFreno.MOTIVO_RETIRO_CHOICES)
     nuevo_espesor_fabrica_mm = serializers.FloatField(min_value=1.0)

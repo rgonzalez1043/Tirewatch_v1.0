@@ -157,8 +157,9 @@ class ProyeccionFrenoViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({
             "equipos": list(equipos_dict.values()),
             "config": {
-                "limite_mm": config.limite_freno_pastilla_mm,
-                "prof_fabrica_mm": config.prof_fabrica_freno_mm,
+                "limite_freno_tambor_mm": config.limite_freno_tambor_mm,
+                "limite_freno_disco_mm": config.limite_freno_disco_mm,
+                "limite_freno_tambor_aire_mm": config.limite_freno_tambor_aire_mm,
                 "umbral_alerta_pct": config.umbral_alerta_freno_pct,
             }
         })

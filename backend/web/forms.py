@@ -15,10 +15,19 @@ class ConfiguracionSistemaForm(forms.ModelForm):
             'limite_turbo_axial': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-navy-700 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500', 'step': '0.00001'}),
             'umbral_alerta_turbo_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-navy-700 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500', 'step': '0.001'}),
 
-            # Frenos
+            # Frenos — Tambor
+            'limite_freno_tambor_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
+            'prof_fabrica_freno_tambor_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.1'}),
+            # Frenos — Disco
+            'limite_freno_disco_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
+            'prof_fabrica_freno_disco_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.1'}),
+            # Frenos — Tambor de Aire
+            'limite_freno_tambor_aire_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
+            'prof_fabrica_freno_tambor_aire_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.1'}),
+            # Frenos — Comunes
+            'umbral_alerta_freno_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
             'limite_freno_pastilla_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
             'prof_fabrica_freno_mm': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.1'}),
-            'umbral_alerta_freno_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-red-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-red-500', 'step': '0.01'}),
 
             # Cadenas
             'limite_elongacion_cadena_pct': forms.NumberInput(attrs={'class': 'w-full bg-navy-900 border border-yellow-800/50 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500', 'step': '0.1'}),
@@ -48,7 +57,7 @@ class UsuarioEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            if type(field.widget) == forms.CheckboxInput:
+            if isinstance(field.widget, forms.CheckboxInput):
                 field.widget.attrs.update({'class': 'w-4 h-4 text-blue-600 bg-navy-900 border-navy-700 rounded focus:ring-blue-500'})
             else:
                 field.widget.attrs.update({
