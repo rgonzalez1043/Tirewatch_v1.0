@@ -75,7 +75,7 @@ def analizar_cadenas_equipo(equipo):
 
         horas_diarias = config.horas_diarias_operacion or 12.5
         dias = horas_restantes / horas_diarias
-        fecha_reemplazo = timezone.now().date() + datetime.timedelta(days=dias)
+        fecha_reemplazo = timezone.now().date() + datetime.timedelta(days=int(dias))
 
     # Determinar estado basado en elongación actual
     if elongacion_actual >= limite_pct or horas_restantes < 100:

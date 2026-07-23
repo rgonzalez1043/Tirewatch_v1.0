@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Usuario, Departamento
+from .models import Usuario, Departamento, ConfiguracionSistema
 
 
 @admin.register(Departamento)
@@ -20,3 +20,15 @@ class UsuarioAdmin(UserAdmin):
             "fields": ("rol", "departamento", "cargo", "telefono"),
         }),
     )
+
+
+@admin.register(ConfiguracionSistema)
+class ConfiguracionSistemaAdmin(admin.ModelAdmin):
+    """Admin singleton — no permite crear más de un registro."""
+
+    def has_add_permission(self, request):
+        # Solo permitir agregar si no existe ningún registro
+        return not ConfiguracionSistema.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
