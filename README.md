@@ -20,6 +20,8 @@
 |---|---|---|
 | 🛞 **Neumáticos** | ✅ Activo | Mediciones, tasas de desgaste, proyecciones de cambio |
 | 💨 **Turbos** | ✅ Activo | Control de horas de operación y overhaul |
+| 🛑 **Frenos** | ✅ Activo | Desgaste de pastillas y discos de freno |
+| ⛓️ **Cadenas** | ✅ Activo | Elongación y ciclos de cadenas STS / RTG |
 | 🏗️ **Equipos** | ✅ Activo | Catálogo maestro de equipos y flota |
 | 👤 **Core / Auth** | ✅ Activo | Usuarios, roles y departamentos |
 | 📊 **Dashboard** | ✅ Activo | KPIs, speedómetros MTBF, análisis de confiabilidad |
@@ -42,6 +44,8 @@ tirewatch/
 │   ├── turbos/                 # Control de horas y overhaul de turbos
 │   │   ├── models.py           # Modelos: Turbo, RegistroHoras
 │   │   └── services.py         # Lógica de negocio para turbos
+│   ├── frenos/                 # Desgaste de pastillas y discos de freno
+│   ├── cadenas/                # Elongación y ciclos de cadenas STS / RTG
 │   ├── web/                    # Vistas HTML (HTMX + Alpine.js)
 │   │   └── views.py            # Dashboard y vistas principales
 │   ├── templates/              # Plantillas HTML base
@@ -69,8 +73,8 @@ docker-compose up --build
 ```
 
 **Accesos:**
-- 🌐 **Aplicación:** http://localhost:8000
-- 🔧 **Admin Django:** http://localhost:8000/admin/
+- 🌐 **Aplicación:** http://localhost:8011
+- 🔧 **Admin Django:** http://localhost:8011/admin/
 - 👤 **Usuario inicial:** `admin` / `tirewatch2025`
 
 > ℹ️ Hot-reload activo: los cambios en el código se reflejan automáticamente sin reiniciar.
@@ -105,11 +109,13 @@ copy .env.example .env        # Windows
 python manage.py migrate
 python manage.py init_tirewatch
 
-# 6. Iniciar el servidor de desarrollo
+# 6. Iniciar el servidor de desarrollo (puerto 8011 por defecto)
 python manage.py runserver
 ```
 
-🌐 La app estará disponible en **http://localhost:8000**
+> ℹ️ El comando `runserver` está personalizado para usar el puerto **8011** en lugar del 8000 de Django. Puedes forzar otro puerto con `python manage.py runserver 0.0.0.0:8080`.
+
+🌐 La app estará disponible en **http://localhost:8011**
 
 ---
 
@@ -128,6 +134,20 @@ cp backend/.env.example backend/.env
 docker-compose up --build -d
 ```
 
+> El `docker-compose.yml` levanta **PostgreSQL 15** y sirve la app con **Gunicorn** en el puerto **8011**.
+
+#### 🪟 Producción en Windows (sin Docker)
+
+En Windows, Gunicorn no está disponible. Usa **Waitress** (ya incluido en `requirements.txt`) junto con **WhiteNoise** para servir los estáticos:
+
+```powershell
+# Recolectar estáticos
+python manage.py collectstatic --noinput
+
+# Servir con Waitress en el puerto 8011
+waitress-serve --listen=0.0.0.0:8011 tirewatch.wsgi:application
+```
+
 ---
 
 ## ⚙️ Variables de Entorno
@@ -135,21 +155,31 @@ docker-compose up --build -d
 Copiar `backend/.env.example` a `backend/.env` y configurar:
 
 ```env
-# Django
-DJANGO_SECRET_KEY=<clave-secreta-larga-y-aleatoria>
-DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=tu-dominio.com,localhost
+# ── Django ──────────────────────────────────────────────
+DJANGO_SECRET_KEY=<clave-secreta-larga-y-aleatoria>   # genera una en https://djecrety.ir/
+DJANGO_DEBUG=False                                     # SIEMPRE False en producción
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1               # IPs/hosts separados por coma, sin espacios
 
-# Base de Datos (PostgreSQL para producción)
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=tirewatch
-DB_USER=tirewatch_user
-DB_PASSWORD=<contraseña-segura>
-DB_HOST=localhost
-DB_PORT=5432
+# ── Base de Datos ───────────────────────────────────────
+# SQLite (por defecto — simple, ideal para uso interno)
+# DB_ENGINE=django.db.backends.sqlite3
+# DB_NAME=db.sqlite3
 
-# CORS (orígenes permitidos)
-CORS_ORIGINS=https://tu-dominio.com
+# PostgreSQL (usado por Docker; descomenta si migras el entorno local)
+# DB_ENGINE=django.db.backends.postgresql
+# DB_NAME=tirewatch
+# DB_USER=tirewatch_user
+# DB_PASSWORD=<contraseña-segura>
+# DB_HOST=localhost
+# DB_PORT=5432
+
+# ── API Externa de Horómetros ───────────────────────────
+# Servidor de flota que provee las horas de operación de los equipos
+HOROMETROS_API_BASE_URL=http://192.168.38.14:8009/vehiculos
+HOROMETROS_API_TIMEOUT=5
+
+# ── CORS (orígenes permitidos si hay frontend separado) ──
+# CORS_ORIGINS=http://192.168.1.50,http://localhost:3000
 ```
 
 > ⚠️ **Nunca subas el archivo `.env` al repositorio.** Ya está incluido en `.gitignore`.
@@ -192,6 +222,19 @@ CORS_ORIGINS=https://tu-dominio.com
 | `GET` | `/api/turbos/` | Listar turbos registrados |
 | `POST` | `/api/turbos/` | Registrar nuevo turbo |
 
+### Frenos
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET / POST` | `/api/frenos/componentes/` | Componentes de freno (pastillas, discos) |
+| `GET / POST` | `/api/frenos/mediciones/` | Mediciones de desgaste de freno |
+| `GET` | `/api/frenos/proyecciones/` | Proyecciones de cambio de freno |
+
+### Cadenas
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET / POST` | `/api/cadenas/mediciones/` | Mediciones de elongación de cadena |
+| `GET` | `/api/cadenas/proyecciones/` | Proyecciones de cambio de cadena |
+
 ---
 
 ## ✅ Funcionalidades Implementadas
@@ -200,19 +243,19 @@ CORS_ORIGINS=https://tu-dominio.com
 - [x] Registro de mediciones en terreno vía web
 - [x] Cálculo de tasas de desgaste por marca, modelo y posición
 - [x] Proyección de fecha y kilometraje de cambio por neumático
+- [x] Módulo de frenos (pastillas y discos) con proyecciones
+- [x] Módulo de cadenas (elongación STS / RTG) con proyecciones
+- [x] Integración con API externa de horómetros (servidor de flota)
 - [x] Dashboard con alertas, KPIs y estadísticas en tiempo real
 - [x] Speedómetros MTBF por módulo (ISO 14224 / IEEE 493)
 - [x] Gráficos de historial y proyección por equipo
 - [x] Sistema de autenticación y control de roles
 - [x] Panel de administración Django
 - [x] API REST completa y documentada
-- [x] Soporte Docker para desarrollo y producción
-- [x] Migración a PostgreSQL en producción
+- [x] Soporte Docker (PostgreSQL + Gunicorn) y despliegue Windows (Waitress)
 
 ## 🗺️ Roadmap — Módulos Futuros
 
-- [ ] **Frenos** — desgaste de pastillas y discos
-- [ ] **Cadenas** — elongación y ciclos STS / RTG
 - [ ] **Sensores SICK** — telemetría IoT para RTG
 - [ ] **Reportes PDF** — informes automáticos mensuales
 - [ ] **Notificaciones** — alertas por email y Telegram
@@ -224,10 +267,12 @@ CORS_ORIGINS=https://tu-dominio.com
 
 | Entorno | Motor | Configuración |
 |---------|-------|---------------|
-| Desarrollo | SQLite 3 | Automático (no requiere configuración) |
-| Producción | PostgreSQL | Configurar via `.env` |
+| Local (venv) | SQLite 3 | Automático (por defecto en `.env.example`, no requiere configuración) |
+| Docker / Producción | PostgreSQL 15 | Preconfigurado en `docker-compose.yml` (o vía `.env`) |
 
-**Migración a PostgreSQL:**
+> ℹ️ La opción **Docker (recomendada)** ya arranca PostgreSQL automáticamente. El motor SQLite solo aplica al entorno virtual local.
+
+**Configuración PostgreSQL manual:**
 ```env
 DB_ENGINE=django.db.backends.postgresql
 DB_NAME=tirewatch
@@ -243,11 +288,12 @@ DB_PORT=5432
 
 | Capa | Tecnología |
 |------|------------|
-| **Backend** | Python 3.11, Django 4.2, Django REST Framework 3.14 |
+| **Backend** | Python 3.11, Django 4.2, Django REST Framework 3.14, django-filter |
 | **Frontend** | HTML5, HTMX, Alpine.js, CSS vanilla |
-| **Base de Datos** | SQLite (dev) / PostgreSQL (prod) |
-| **Análisis** | NumPy, Pandas |
-| **Deploy** | Docker, Docker Compose, Gunicorn |
+| **Base de Datos** | SQLite (local) / PostgreSQL 15 (Docker/prod) |
+| **Análisis** | NumPy, Pandas, openpyxl |
+| **Deploy** | Docker, Docker Compose, Gunicorn (Linux), Waitress (Windows), WhiteNoise |
+| **Integraciones** | API REST externa de horómetros (`requests`) |
 | **Estándares** | ISO 14224, IEEE 493 (confiabilidad) |
 
 ---

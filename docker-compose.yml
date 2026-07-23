@@ -1,7 +1,7 @@
 # TireWatch - Docker Compose (Unificado)
 # ==========================================
 # Uso: docker-compose up --build
-# Acceso: http://localhost:8000
+# Acceso: http://localhost:8011
 
 version: "3.9"
 
@@ -32,13 +32,13 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py init_tirewatch &&
-             python manage.py runserver 0.0.0.0:8011"
+             gunicorn tirewatch.wsgi:application --bind 0.0.0.0:8011 --workers 2"
     volumes:
       - ./backend:/app
     ports:
       - "8011:8011"
     environment:
-      - DJANGO_DEBUG=True
+      - DJANGO_DEBUG=False
       - DJANGO_SECRET_KEY=dev-secret-key-cambiar-en-produccion
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=tirewatch

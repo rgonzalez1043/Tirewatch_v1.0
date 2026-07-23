@@ -52,23 +52,23 @@ def turbos_dashboard(request):
     return render(request, "web/turbos_dashboard.html", context)
 
 
-@login_required(login_url="/login/")
+@login_required
 def importar(request):
     return render(request, "web/importar.html")
 
 
-@login_required(login_url="/login/")
+@login_required
 def terreno(request):
     config = ConfiguracionSistema.load()
     return render(request, "web/terreno.html", {"config": config})
 
 
-@login_required(login_url="/login/")
+@login_required
 def equipo_detalle(request, equipo_id):
     return render(request, "web/equipo_detalle.html", {"numero": equipo_id})
 
 
-@login_required(login_url="/login/")
+@login_required
 def modulos(request):
     modulos_activos = [
         {"icono": "🛥", "titulo": "Neumáticos", "descripcion": "Desgaste y proyección de cambio", "url": "/", "activo": True},
@@ -83,13 +83,13 @@ def modulos(request):
     return render(request, "web/modulos.html", {"modulos_activos": modulos_activos, "modulos_futuros": modulos_futuros})
 
 
-@login_required(login_url="/login/")
+@login_required
 def ayuda(request):
     """Página de documentación técnica y tutoriales de medición."""
     return render(request, "web/ayuda.html")
 
 
-@login_required(login_url="/login/")
+@login_required
 def configuracion_sistema(request):
     if request.user.rol != "admin":
         messages.error(request, "No tienes permisos para acceder a la configuración del sistema.")
@@ -109,7 +109,7 @@ def configuracion_sistema(request):
     return render(request, "web/configuracion.html", {"form": form})
 
 
-@login_required(login_url="/login/")
+@login_required
 def usuarios_list(request):
     if request.user.rol != "admin":
         messages.error(request, "Acceso denegado: solo administradores.")
@@ -119,7 +119,7 @@ def usuarios_list(request):
     return render(request, "web/usuarios_list.html", {"usuarios": usuarios})
 
 
-@login_required(login_url="/login/")
+@login_required
 def usuario_crear(request):
     if request.user.rol != "admin":
         messages.error(request, "Acceso denegado.")
@@ -137,7 +137,7 @@ def usuario_crear(request):
     return render(request, "web/usuario_form.html", {"form": form, "titulo": "Crear Nuevo Usuario"})
 
 
-@login_required(login_url="/login/")
+@login_required
 def usuario_editar(request, user_id):
     if request.user.rol != "admin":
         messages.error(request, "Acceso denegado.")
@@ -157,7 +157,7 @@ def usuario_editar(request, user_id):
     return render(request, "web/usuario_form.html", {"form": form, "titulo": f"Editar Usuario: {usuario.username}"})
 
 
-@login_required(login_url="/login/")
+@login_required
 def reporte_proyecciones(request):
     """
     Reporte imprimible de todas las proyecciones activas (neumáticos + turbos + frenos + cadenas).
@@ -226,7 +226,7 @@ def reporte_proyecciones(request):
     return render(request, "web/reporte.html", context)
 
 
-@login_required(login_url="/login/")
+@login_required
 def frenos_dashboard(request):
     """Dashboard de Frenos. Datos cargados vía fetch JS al endpoint /api/frenos/."""
     config = ConfiguracionSistema.load()
@@ -245,7 +245,7 @@ def frenos_dashboard(request):
     return render(request, "web/frenos_dashboard.html", context)
 
 
-@login_required(login_url="/login/")
+@login_required
 def cadenas_dashboard(request):
     """Dashboard de Cadenas. Datos cargados vía fetch JS al endpoint /api/cadenas/."""
     config = ConfiguracionSistema.load()
@@ -264,7 +264,7 @@ def cadenas_dashboard(request):
     return render(request, "web/cadenas_dashboard.html", context)
 
 
-@login_required(login_url="/login/")
+@login_required
 def app_movil(request):
     """Página informativa de la App Móvil TireWatch (Flutter)."""
     return render(request, "web/app_movil.html")

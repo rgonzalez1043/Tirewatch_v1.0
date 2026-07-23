@@ -11,13 +11,12 @@ Jerarquía de precisión en el cálculo de tasa:
   3. Tasa de flota por marca usando días × horas_diarias_promedio
      Fallback cuando no hay horómetros.
 """
+import logging
 from datetime import timedelta
 
 from .models import Medicion, TasaDesgaste, Proyeccion
 from equipos.models import Equipo
 from core.models import ConfiguracionSistema
-
-import logging
 
 logger = logging.getLogger(__name__)
 
