@@ -10,7 +10,10 @@ urlpatterns = [
     path("frenos/", views.frenos_dashboard, name="frenos_dashboard"),
     path("cadenas/", views.cadenas_dashboard, name="cadenas_dashboard"),
     path("app-movil/", views.app_movil, name="app_movil"),
+    # Configuración y Marcas
     path("configuracion/", views.configuracion_sistema, name="configuracion_sistema"),
+    path("marcas/crear/", views.marca_crear, name="marca_crear"),
+    path("marcas/<int:marca_id>/eliminar/", views.marca_eliminar, name="marca_eliminar"),
     path("terreno/", views.terreno, name="terreno"),
     path("importar/", views.importar, name="importar"),
     path("equipos/<int:equipo_id>/", views.equipo_detalle, name="equipo_detalle"),

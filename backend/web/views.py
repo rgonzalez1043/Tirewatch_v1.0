@@ -9,11 +9,12 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
 
 from core.models import ConfiguracionSistema, Usuario
+from equipos.models import MarcaComponente
 from turbos.models import ProyeccionTurbo
 from frenos.models import ProyeccionFreno
 from cadenas.models import ProyeccionCadena
 from neumaticos.models import Proyeccion as ProyeccionNeumaticos
-from .forms import ConfiguracionSistemaForm, UsuarioCreationForm, UsuarioEditForm
+from .forms import ConfiguracionSistemaForm, UsuarioCreationForm, UsuarioEditForm, MarcaComponenteForm
 
 
 def login_view(request):
@@ -96,6 +97,7 @@ def configuracion_sistema(request):
         return redirect("web:dashboard")
 
     config = ConfiguracionSistema.load()
+    marcas = MarcaComponente.objects.all().order_by("tipo", "nombre")
 
     if request.method == "POST":
         form = ConfiguracionSistemaForm(request.POST, instance=config)
@@ -106,7 +108,41 @@ def configuracion_sistema(request):
     else:
         form = ConfiguracionSistemaForm(instance=config)
 
-    return render(request, "web/configuracion.html", {"form": form})
+    marca_form = MarcaComponenteForm()
+    return render(request, "web/configuracion.html", {
+        "form": form,
+        "marcas": marcas,
+        "marca_form": marca_form,
+    })
+
+
+@login_required
+def marca_crear(request):
+    if request.user.rol != "admin":
+        messages.error(request, "Acceso denegado.")
+        return redirect("web:dashboard")
+
+    if request.method == "POST":
+        form = MarcaComponenteForm(request.POST)
+        if form.is_valid():
+            marca = form.save()
+            messages.success(request, f"Marca '{marca.nombre}' ({marca.get_tipo_display()}) agregada exitosamente.")
+        else:
+            messages.error(request, "Error al agregar la marca. Verifique los datos.")
+    return redirect("web:configuracion_sistema")
+
+
+@login_required
+def marca_eliminar(request, marca_id):
+    if request.user.rol != "admin":
+        messages.error(request, "Acceso denegado.")
+        return redirect("web:dashboard")
+
+    marca = get_object_or_404(MarcaComponente, id=marca_id)
+    nombre = marca.nombre
+    marca.delete()
+    messages.success(request, f"Marca '{nombre}' eliminada del sistema.")
+    return redirect("web:configuracion_sistema")
 
 
 @login_required

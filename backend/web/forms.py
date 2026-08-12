@@ -62,3 +62,20 @@ class UsuarioEditForm(forms.ModelForm):
                 field.widget.attrs.update({"class": _CHECKBOX})
             else:
                 field.widget.attrs.update({"class": _INPUT})
+
+
+from equipos.models import MarcaComponente
+
+class MarcaComponenteForm(forms.ModelForm):
+    class Meta:
+        model = MarcaComponente
+        fields = ("nombre", "tipo", "profundidad_fabrica_mm", "vida_util_horas", "activo")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.update({"class": _CHECKBOX})
+            else:
+                field.widget.attrs.update({"class": _INPUT})
+

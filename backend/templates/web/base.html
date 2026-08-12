@@ -24,13 +24,58 @@
     body {
       background-color: #090f18;
       color: #e2e8f0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* Tabla y bordes oscuros sin líneas blancas de Excel */
+    table {
+      width: 100%;
+      border-collapse: collapse !important;
+      border-color: #1e2d42 !important;
+    }
+
+    thead tr {
+      background-color: #0f1a27 !important;
+      border-bottom: 2px solid #1e2d42 !important;
+    }
+
+    th {
+      color: #94a3b8 !important;
+      font-size: 0.75rem !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      padding: 0.75rem 1rem !important;
+      border-color: #1e2d42 !important;
+    }
+
+    td {
+      padding: 0.875rem 1rem !important;
+      border-bottom: 1px solid #162131 !important;
+      color: #cbd5e1 !important;
+      border-color: #162131 !important;
+    }
+
+    tr:hover td {
+      background-color: #162131 !important;
     }
 
     input,
     select,
     textarea {
       color-scheme: dark;
+      background-color: #0f1a27 !important;
+      border-color: #1e2d42 !important;
+      color: #f1f5f9 !important;
     }
+
+    /* Utilitarios navy */
+    .bg-navy-950 { background-color: #090f18 !important; }
+    .bg-navy-900 { background-color: #0f1a27 !important; }
+    .bg-navy-800 { background-color: #162131 !important; }
+    .bg-navy-700 { background-color: #1e2d42 !important; }
+    .border-navy-700 { border-color: #1e2d42 !important; }
+    .border-navy-600 { border-color: #2a3b54 !important; }
 
     /* Scrollbar */
     ::-webkit-scrollbar {
