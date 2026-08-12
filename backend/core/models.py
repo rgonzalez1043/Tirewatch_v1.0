@@ -42,8 +42,10 @@ class Usuario(AbstractUser):
         verbose_name = "Usuario"
         verbose_name_plural = "Usuarios"
 
-    def __str__(self):
-        return f"{self.get_full_name()} ({self.rol})"
+    def save(self, *args, **kwargs):
+        if self.rol == "admin":
+            self.is_staff = True
+        super().save(*args, **kwargs)
 
     @property
     def puede_editar(self):
