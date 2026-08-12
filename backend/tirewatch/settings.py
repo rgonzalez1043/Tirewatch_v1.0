@@ -163,15 +163,18 @@ USE_TZ = True
 # =============================================================================
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# WhiteNoise: compresión y cache de estáticos en producción
+# WhiteNoise: compresión y cache de estáticos en producción (sin requerir manifest estricto)
 if not DEBUG:
     STORAGES = {
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },
     }
 

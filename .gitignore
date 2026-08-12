@@ -56,7 +56,6 @@ coverage.xml
 *.sqlite3
 db.sqlite3
 backend/staticfiles/
-backend/static/
 backend/media/
 backend/logs/
 *.log
