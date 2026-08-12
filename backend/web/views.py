@@ -188,7 +188,13 @@ def reporte_proyecciones(request):
     # Pre-calcular stats de neumáticos en Python
     stats_neu = {"total": len(proy_neumaticos), "criticos": 0, "atencion": 0, "ok": 0}
     for p in proy_neumaticos:
-        stats_neu[p.estado] += 1
+        st = str(getattr(p, "estado", "") or "ok").lower()
+        if "critico" in st:
+            stats_neu["criticos"] += 1
+        elif "atencion" in st or "atencion" in st:
+            stats_neu["atencion"] += 1
+        else:
+            stats_neu["ok"] += 1
 
     stats_turb = proy_turbos.aggregate(
         total=Count("id"),
