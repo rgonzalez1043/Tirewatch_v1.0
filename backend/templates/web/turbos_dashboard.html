@@ -21,7 +21,7 @@
         <!-- Total Equipos Monitoreados -->
         <div class="bg-navy-800 border border-navy-700 rounded-lg p-5 flex flex-col justify-center">
             <div class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Equipos Monitoreados</div>
-            <div class="text-3xl font-extrabold text-white flex items-center gap-2">
+            <div class="text-3xl font-extrabold text-gray-100 flex items-center gap-2">
                 {{ stats.total|default:"0" }}
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -60,7 +60,7 @@
                     Estado de la Flota (Prioridad Alta)
                 </h2>
                 <div class="flex items-center gap-2 flex-wrap">
-                    <button @click="filtro='TODO'" :class="filtro==='TODO' ? 'bg-navy-700 text-white':'text-gray-400'"
+                    <button @click="filtro='TODO'" :class="filtro==='TODO' ? 'bg-navy-700 text-gray-100':'text-gray-400'"
                         class="px-3 py-1 rounded text-xs font-bold transition-all">Todos</button>
                     <button @click="filtro='CRITICO'"
                         :class="filtro==='CRITICO' ? 'bg-red-900/50 text-red-400':'text-gray-400'"

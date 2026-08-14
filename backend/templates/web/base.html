@@ -106,6 +106,48 @@
     .text-gray-500 { color: var(--tw-muted) !important; }
     .text-gray-600 { color: var(--tw-muted) !important; }
 
+    /* ============================================================
+       CONTRASTE DE ACENTOS EN TEMA CLARO
+       El diseño original (tema oscuro) usaba texto de color CLARO
+       (yellow/green/cyan-400) sobre chips OSCUROS. En fondo claro eso
+       no se lee. Aquí se invierte de forma centralizada:
+         · texto de acento  -> tono OSCURO del mismo color (legible en claro)
+         · chips oscuros     -> tinte CLARO del mismo color
+         · bordes de acento  -> tono suave
+       Se conserva el color (identidad de cada módulo), solo se ajusta el brillo.
+       ============================================================ */
+
+    /* Texto de acento (incluye estados hover) -> tono oscuro legible */
+    .text-red-300, .text-red-400, .text-red-500,
+    .hover\:text-red-400:hover        { color: #b91c1c !important; }
+    .text-green-300, .text-green-400, .text-green-500,
+    .hover\:text-green-400:hover      { color: #15803d !important; }
+    .text-blue-300, .text-blue-400, .text-blue-500,
+    .hover\:text-blue-400:hover       { color: #1d4ed8 !important; }
+    .text-yellow-300, .text-yellow-400, .text-yellow-500,
+    .hover\:text-yellow-400:hover     { color: #a16207 !important; }
+    .text-purple-300, .text-purple-400,
+    .hover\:text-purple-400:hover     { color: #7e22ce !important; }
+    .text-orange-300, .text-orange-400,
+    .hover\:text-orange-400:hover     { color: #c2410c !important; }
+    .text-cyan-400, .text-cyan-500    { color: #0e7490 !important; }
+
+    /* Chips/fondos oscuros translúcidos (bg-*-900 y sus opacidades) -> tinte claro */
+    [class*="bg-red-900"]    { background-color: #fee2e2 !important; }
+    [class*="bg-green-900"]  { background-color: #dcfce7 !important; }
+    [class*="bg-blue-900"]   { background-color: #dbeafe !important; }
+    [class*="bg-yellow-900"] { background-color: #fef9c3 !important; }
+    [class*="bg-purple-900"] { background-color: #f3e8ff !important; }
+    [class*="bg-orange-900"] { background-color: #ffedd5 !important; }
+
+    /* Bordes de acento -> suaves */
+    [class*="border-red-800"]    { border-color: #fecaca !important; }
+    [class*="border-green-800"]  { border-color: #bbf7d0 !important; }
+    [class*="border-blue-800"]   { border-color: #bfdbfe !important; }
+    [class*="border-yellow-800"] { border-color: #fde68a !important; }
+    [class*="border-purple-800"] { border-color: #e9d5ff !important; }
+    [class*="border-orange-800"] { border-color: #fed7aa !important; }
+
     /* ---- Scrollbar ---- */
     ::-webkit-scrollbar {
       width: 8px;

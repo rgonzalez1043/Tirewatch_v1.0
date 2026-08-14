@@ -214,6 +214,7 @@ HOROMETROS_API_TIMEOUT=5
 - [x] Sistema de autenticación y control de roles
 - [x] Panel de administración Django
 - [x] API REST completa y documentada (consumida por la web y la app Android)
+- [x] App móvil Android (Flutter) operativa para registro en terreno
 - [x] Despliegue como servicio de Windows (NSSM + Waitress) en la intranet
 
 ## 🗺️ Roadmap — Módulos Futuros
@@ -221,7 +222,7 @@ HOROMETROS_API_TIMEOUT=5
 - [ ] **Sensores SICK** — telemetría IoT para RTG
 - [ ] **Reportes PDF** — informes automáticos mensuales
 - [ ] **Notificaciones** — alertas por email y Telegram
-- [ ] **App Móvil** — Flutter para registro en terreno
+- [ ] **App Móvil iOS** — versión para iPhone/iPad
 
 ---
 
