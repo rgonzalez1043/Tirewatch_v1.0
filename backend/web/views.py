@@ -76,9 +76,9 @@ def modulos(request):
         {"icono": "⚙️", "titulo": "Turbos", "descripcion": "Juego Radial/Axial y proyección de overhaul", "url": "/turbos/", "activo": True},
         {"icono": "🛑", "titulo": "Frenos", "descripcion": "Desgaste de pastillas — Kalmar T2, Terberg, Konecranes", "url": "/frenos/", "activo": True},
         {"icono": "⛓️", "titulo": "Cadenas", "descripcion": "Elongación de cadenas de spreader — Taylor", "url": "/cadenas/", "activo": True},
+        {"icono": "📱", "titulo": "App Móvil (Android)", "descripcion": "App Flutter operativa · registro en terreno", "url": "/app-movil/", "activo": True},
     ]
     modulos_futuros = [
-        {"icono": "📱", "titulo": "App Móvil", "descripcion": "Flutter para registro en terreno", "url": "/app-movil/"},
         {"icono": "📤", "titulo": "Exportación Avanzada", "descripcion": "Reportes Excel y bi-direccionales"},
     ]
     return render(request, "web/modulos.html", {"modulos_activos": modulos_activos, "modulos_futuros": modulos_futuros})

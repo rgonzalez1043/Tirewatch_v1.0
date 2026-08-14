@@ -34,6 +34,8 @@ CSRF_TRUSTED_ORIGINS = [
 # APPS
 # =============================================================================
 INSTALLED_APPS = [
+    # Tema moderno del panel /admin/ (debe ir ANTES de django.contrib.admin)
+    "jazzmin",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -219,4 +221,97 @@ TIREWATCH = {
         "BKT": 70,
     },
     "MESES_PROYECCION_MAX": 48,
+}
+
+# =============================================================================
+# JAZZMIN — Tema moderno del panel /admin/
+# =============================================================================
+JAZZMIN_SETTINGS = {
+    "site_title": "TireWatch Admin",
+    "site_header": "TireWatch",
+    "site_brand": "TireWatch",
+    "site_logo": "img/sti.png",
+    "login_logo": "img/sti.png",
+    "site_logo_classes": "",
+    "site_icon": "img/sti.png",
+    "welcome_sign": "Panel de Administración — TireWatch",
+    "copyright": "STI / Hanseatic Global Terminals",
+    "search_model": ["equipos.Equipo", "neumaticos.Neumatico", "core.Usuario"],
+
+    # Enlaces del menú superior
+    "topmenu_links": [
+        {"name": "Volver al sitio", "url": "/", "new_window": False},
+        {"name": "Dashboard", "url": "/", "new_window": False},
+    ],
+
+    # Formularios modernos con pestañas
+    "changeform_format": "horizontal_tabs",
+    "related_modal_active": True,
+
+    # Orden de aplicaciones en la barra lateral
+    "order_with_respect_to": [
+        "equipos", "neumaticos", "turbos", "frenos", "cadenas", "core", "auth", "authtoken",
+    ],
+
+    # Íconos (FontAwesome, incluidos con Jazzmin)
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.Group": "fas fa-users",
+        "authtoken.tokenproxy": "fas fa-key",
+        "core.usuario": "fas fa-user",
+        "core.departamento": "fas fa-building",
+        "core.configuracionsistema": "fas fa-sliders-h",
+        "equipos.equipo": "fas fa-truck-monster",
+        "equipos.marcacomponente": "fas fa-tag",
+        "equipos.tipoequipo": "fas fa-layer-group",
+        "neumaticos.neumatico": "fas fa-life-ring",
+        "neumaticos.medicion": "fas fa-ruler-combined",
+        "neumaticos.proyeccion": "fas fa-chart-line",
+        "neumaticos.tasadesgaste": "fas fa-percent",
+        "turbos.turbo": "fas fa-fan",
+        "turbos.medicionturbo": "fas fa-ruler-combined",
+        "turbos.proyeccionturbo": "fas fa-chart-line",
+        "frenos.componentefreno": "fas fa-compact-disc",
+        "frenos.medicionfreno": "fas fa-ruler-combined",
+        "frenos.proyeccionfreno": "fas fa-chart-line",
+        "cadenas.medicioncadena": "fas fa-link",
+        "cadenas.proyeccioncadena": "fas fa-chart-line",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+
+    "show_ui_builder": False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": "navbar-success",
+    "accent": "accent-success",
+    "navbar": "navbar-white navbar-light",
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": True,
+    "sidebar": "sidebar-light-success",
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+    "theme": "flatly",
+    "default_theme_mode": "light",
+    "button_classes": {
+        "primary": "btn-success",
+        "secondary": "btn-outline-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success",
+    },
+    "actions_sticky_top": True,
 }

@@ -50,7 +50,7 @@
                                 {% if u.rol == 'admin' %}bg-red-900/30 text-red-400 border border-red-800/50
                                 {% elif u.rol == 'supervisor' %}bg-yellow-900/30 text-yellow-500 border border-yellow-800/50
                                 {% elif u.rol == 'tecnico' %}bg-blue-900/30 text-blue-400 border border-blue-800/50
-                                {% else %}bg-gray-800 text-gray-400 border border-gray-700{% endif %}">
+                                {% else %}bg-gray-100 text-gray-600 border border-gray-300{% endif %}">
                                 {{ u.get_rol_display }}
                             </span>
                             {% if u.cargo %}

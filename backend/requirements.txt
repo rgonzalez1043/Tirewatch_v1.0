@@ -8,6 +8,9 @@ djangorestframework>=3.14
 django-cors-headers>=4.3
 django-filter>=23.5
 
+# Panel de administración moderno (tema del /admin/)
+django-jazzmin>=3.0
+
 # Procesamiento de Excel y análisis numérico
 pandas>=2.1
 openpyxl>=3.1

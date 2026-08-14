@@ -30,7 +30,7 @@
       --tw-line-2:    #cbd8d0;   /* bordes más marcados */
       --tw-ink:       #1f2937;   /* texto principal */
       --tw-ink-soft:  #475569;   /* texto secundario */
-      --tw-muted:     #6b7f74;   /* texto atenuado (verde-gris) */
+      --tw-muted:     #546358;   /* texto atenuado (verde-gris) — legible en 10px */
       --tw-green:     #16a34a;   /* verde de marca */
       --tw-green-d:   #15803d;   /* verde hover */
     }
@@ -90,13 +90,16 @@
     input::placeholder,
     textarea::placeholder { color: #9aa8a0 !important; }
 
-    /* ---- Superficies (se conservan los nombres de clase navy-*) ---- */
-    .bg-navy-950 { background-color: var(--tw-bg) !important; }
-    .bg-navy-900 { background-color: var(--tw-surface) !important; }
-    .bg-navy-800 { background-color: var(--tw-surface-2) !important; }
-    .bg-navy-700 { background-color: #e4ede8 !important; }
-    .border-navy-700 { border-color: var(--tw-line) !important; }
-    .border-navy-600 { border-color: var(--tw-line-2) !important; }
+    /* ---- Superficies (se conservan los nombres de clase navy-*) ----
+       Se usan selectores de atributo para capturar TAMBIÉN las variantes
+       con opacidad (bg-navy-900/50, bg-navy-800/60, etc.) que el Tailwind
+       precompilado define como navy OSCURO translúcido -> se veían grises. */
+    [class*="bg-navy-950"] { background-color: var(--tw-bg) !important; }
+    [class*="bg-navy-900"] { background-color: var(--tw-surface) !important; }
+    [class*="bg-navy-800"] { background-color: var(--tw-surface-2) !important; }
+    [class*="bg-navy-700"] { background-color: #e4ede8 !important; }
+    [class*="border-navy-700"] { border-color: var(--tw-line) !important; }
+    [class*="border-navy-600"] { border-color: var(--tw-line-2) !important; }
 
     /* ---- Texto: se reasignan los grises "de tema oscuro" a tonos legibles en claro ---- */
     .text-gray-100 { color: var(--tw-ink) !important; }
