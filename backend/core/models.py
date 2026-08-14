@@ -43,8 +43,14 @@ class Usuario(AbstractUser):
         verbose_name_plural = "Usuarios"
 
     def save(self, *args, **kwargs):
+        # El rol 'admin' otorga acceso completo al panel /admin/ de Django:
+        #   is_staff     -> permite entrar al panel
+        #   is_superuser -> permite ver y MODIFICAR todo (sin asignar permisos uno a uno)
+        # Se aplica automáticamente en cada guardado, sin importar si el usuario
+        # se crea desde la app o desde el admin.
         if self.rol == "admin":
             self.is_staff = True
+            self.is_superuser = True
         super().save(*args, **kwargs)
 
     @property
