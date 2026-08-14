@@ -13,11 +13,10 @@ set PROYECTO=%SCRIPTS_DIR%..\backend
 
 cd /d "%PROYECTO%"
 
-REM ── Cargar variables de entorno desde .env ──────────────────
-REM Se ignoran lineas en blanco y comentarios (#)
-for /f "usebackq tokens=* eol=#" %%a in (".env") do (
-    set "%%a"
-)
+REM ── Variables de entorno ─────────────────────────────────────
+REM  NO se parsea el .env aqui: Django lo carga automaticamente con
+REM  python-dotenv (ver settings.py). Parsearlo en batch corrompe
+REM  valores con caracteres especiales (%, &, !, ^) como la SECRET_KEY.
 
 REM ── Activar entorno virtual ──────────────────────────────────
 call "%PROYECTO%\venv\Scripts\activate.bat"

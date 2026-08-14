@@ -1,27 +1,22 @@
 # TireWatch Backend - Requirements
 # =================================
+# Entorno: Windows Server · SQLite · Waitress (WSGI) · sin Docker
 
-# Django
+# Django + API REST
 Django>=4.2,<5.1
 djangorestframework>=3.14
 django-cors-headers>=4.3
 django-filter>=23.5
 
-# Database (PostgreSQL para producción)
-psycopg2-binary>=2.9
-
-# Excel processing
+# Procesamiento de Excel y análisis numérico
 pandas>=2.1
 openpyxl>=3.1
-
-# Numeric / analysis
 numpy>=1.26
 
-# Utils
+# Utilidades
 python-dotenv>=1.0
-gunicorn>=21.2       # Linux/Mac (no usar en Windows)
-waitress>=3.0        # Servidor WSGI para Windows
 requests>=2.31
 
-# Archivos estáticos en producción (sin Nginx)
+# Servidor WSGI para Windows + estáticos sin Nginx
+waitress>=3.0
 whitenoise>=6.7

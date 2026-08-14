@@ -17,80 +17,110 @@
   <script src="{% static 'js/chart.umd.min.js' %}"></script>
 
   <style>
+    /* ============================================================
+       TireWatch — Tema claro profesional (verde pastel suave)
+       Paleta centralizada: los templates usan .bg-navy-* / text-gray-*
+       y aquí se redefinen a tonos claros para todo el sistema.
+       ============================================================ */
+    :root {
+      --tw-bg:        #eef2ef;   /* fondo de página (blanco verdoso muy suave) */
+      --tw-surface:   #ffffff;   /* tarjetas y paneles */
+      --tw-surface-2: #f2f6f3;   /* hover / superficies elevadas */
+      --tw-line:      #dbe5de;   /* bordes suaves */
+      --tw-line-2:    #cbd8d0;   /* bordes más marcados */
+      --tw-ink:       #1f2937;   /* texto principal */
+      --tw-ink-soft:  #475569;   /* texto secundario */
+      --tw-muted:     #6b7f74;   /* texto atenuado (verde-gris) */
+      --tw-green:     #16a34a;   /* verde de marca */
+      --tw-green-d:   #15803d;   /* verde hover */
+    }
+
     [x-cloak] {
       display: none !important;
     }
 
     body {
-      background-color: #090f18;
-      color: #e2e8f0;
+      background-color: var(--tw-bg);
+      color: var(--tw-ink);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* Tabla y bordes oscuros sin líneas blancas de Excel */
+    /* ---- Tablas ---- */
     table {
       width: 100%;
       border-collapse: collapse !important;
-      border-color: #1e2d42 !important;
+      border-color: var(--tw-line) !important;
     }
 
     thead tr {
-      background-color: #0f1a27 !important;
-      border-bottom: 2px solid #1e2d42 !important;
+      background-color: var(--tw-surface-2) !important;
+      border-bottom: 2px solid var(--tw-line-2) !important;
     }
 
     th {
-      color: #94a3b8 !important;
+      color: #56685d !important;
       font-size: 0.75rem !important;
       font-weight: 700 !important;
       text-transform: uppercase !important;
       letter-spacing: 0.05em !important;
       padding: 0.75rem 1rem !important;
-      border-color: #1e2d42 !important;
+      border-color: var(--tw-line) !important;
     }
 
     td {
       padding: 0.875rem 1rem !important;
-      border-bottom: 1px solid #162131 !important;
-      color: #cbd5e1 !important;
-      border-color: #162131 !important;
+      border-bottom: 1px solid var(--tw-line) !important;
+      color: #334155 !important;
+      border-color: var(--tw-line) !important;
     }
 
     tr:hover td {
-      background-color: #162131 !important;
+      background-color: var(--tw-surface-2) !important;
     }
 
+    /* ---- Formularios ---- */
     input,
     select,
     textarea {
-      color-scheme: dark;
-      background-color: #0f1a27 !important;
-      border-color: #1e2d42 !important;
-      color: #f1f5f9 !important;
+      color-scheme: light;
+      background-color: var(--tw-surface) !important;
+      border-color: var(--tw-line-2) !important;
+      color: var(--tw-ink) !important;
     }
+    input::placeholder,
+    textarea::placeholder { color: #9aa8a0 !important; }
 
-    /* Utilitarios navy */
-    .bg-navy-950 { background-color: #090f18 !important; }
-    .bg-navy-900 { background-color: #0f1a27 !important; }
-    .bg-navy-800 { background-color: #162131 !important; }
-    .bg-navy-700 { background-color: #1e2d42 !important; }
-    .border-navy-700 { border-color: #1e2d42 !important; }
-    .border-navy-600 { border-color: #2a3b54 !important; }
+    /* ---- Superficies (se conservan los nombres de clase navy-*) ---- */
+    .bg-navy-950 { background-color: var(--tw-bg) !important; }
+    .bg-navy-900 { background-color: var(--tw-surface) !important; }
+    .bg-navy-800 { background-color: var(--tw-surface-2) !important; }
+    .bg-navy-700 { background-color: #e4ede8 !important; }
+    .border-navy-700 { border-color: var(--tw-line) !important; }
+    .border-navy-600 { border-color: var(--tw-line-2) !important; }
 
-    /* Scrollbar */
+    /* ---- Texto: se reasignan los grises "de tema oscuro" a tonos legibles en claro ---- */
+    .text-gray-100 { color: var(--tw-ink) !important; }
+    .text-gray-200 { color: var(--tw-ink) !important; }
+    .text-gray-300 { color: var(--tw-ink-soft) !important; }
+    .text-gray-400 { color: var(--tw-ink-soft) !important; }
+    .text-gray-500 { color: var(--tw-muted) !important; }
+    .text-gray-600 { color: var(--tw-muted) !important; }
+
+    /* ---- Scrollbar ---- */
     ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-      background: #0f1a27;
+      background: var(--tw-surface-2);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #1e2d42;
-      border-radius: 3px;
+      background: #c4d3ca;
+      border-radius: 4px;
     }
+    ::-webkit-scrollbar-thumb:hover { background: #a9bcb1; }
   </style>
 
   <script>
@@ -109,25 +139,17 @@
   {% block full_page %}
   <!-- Header -->
   <header
-    class="bg-gradient-to-r from-navy-900 to-navy-800 border-b border-navy-700 px-6 py-3 flex items-center justify-between sticky top-0 z-40">
+    class="bg-white border-b border-navy-700 px-6 py-3 flex items-center justify-between sticky top-0 z-40 shadow-sm">
     <div class="flex items-center gap-3">
-      <div
-        class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow shadow-blue-500/20">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="white"
-          stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      </div>
+      <img src="{% static 'img/sti.png' %}" alt="STI" class="h-9 w-auto" />
+      <div class="h-8 w-px bg-navy-700"></div>
       <div>
-        <h1
-          class="text-lg font-extrabold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent tracking-tight">
-          TireWatch</h1>
-        <p class="text-[9px] text-gray-500 uppercase tracking-[2px]">STI — Control de Desgaste</p>
+        <h1 class="text-lg font-extrabold text-green-700 tracking-tight leading-none">TireWatch</h1>
+        <p class="text-[9px] text-gray-500 uppercase tracking-[2px] mt-0.5">STI — Control de Desgaste</p>
       </div>
     </div>
 
-    <nav class="flex items-center gap-1 bg-navy-950 rounded-lg p-1">
+    <nav class="flex items-center gap-1 bg-navy-800 rounded-lg p-1 border border-navy-700">
       {% url 'web:dashboard' as url_dash %}
       {% url 'web:importar' as url_imp %}
       {% url 'web:terreno' as url_ter %}
@@ -286,6 +308,20 @@
   <main class="w-full px-4 sm:px-6 lg:px-8 py-6">
     {% block content %}{% endblock %}
   </main>
+
+  <!-- Footer: Holding -->
+  <footer class="mt-8 border-t border-navy-700 bg-white">
+    <div class="w-full px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-[10px] text-gray-500 uppercase tracking-[2px]">TireWatch · Control de Desgaste y Confiabilidad</p>
+      <div class="flex items-center gap-5">
+        <span class="text-[10px] text-gray-500 uppercase tracking-wider">Parte del holding</span>
+        <img src="{% static 'img/hanseatic.png' %}" alt="Hanseatic Global Terminals"
+          class="h-6 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+        <img src="{% static 'img/ssa.png' %}" alt="SSA Marine"
+          class="h-6 w-auto opacity-70 hover:opacity-100 transition-opacity" />
+      </div>
+    </div>
+  </footer>
   {% endblock %}
 
 </body>

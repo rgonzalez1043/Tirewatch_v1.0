@@ -72,26 +72,17 @@ echo  OK - Dependencias instaladas.
 echo.
 
 REM ── 4. Configuracion .env ────────────────────────────────────
-echo [4/7] Configuracion del entorno (.env)...
+echo [4/7] Verificando configuracion (.env)...
 if not exist ".env" (
-    copy ".env.example" ".env" >nul
     echo.
-    echo  IMPORTANTE: Se creo el archivo .env desde la plantilla.
-    echo  Debes editarlo antes de continuar:
+    echo  ERROR: No se encontro el archivo .env en backend\
+    echo  El .env definitivo viaja con el codigo del proyecto.
+    echo  Verifica que la copia al servidor lo haya incluido.
     echo.
-    echo    1. DJANGO_SECRET_KEY  - Clave unica (genera en https://djecrety.ir)
-    echo    2. DJANGO_ALLOWED_HOSTS - IP del servidor, ej: 192.168.1.50
-    echo    3. DJANGO_DEBUG=False  - Siempre False en produccion
-    echo    4. HOROMETROS_API_BASE_URL - URL de la API de horometros
-    echo.
-    echo  Abriendo .env en el Bloc de Notas...
-    notepad "%PROYECTO%\.env"
-    echo.
-    echo  Presiona Enter cuando hayas guardado el archivo .env y este listo.
-    pause >nul
-) else (
-    echo  .env ya existe, omitiendo.
+    pause
+    exit /b 1
 )
+echo  OK - .env encontrado (servidor 192.168.38.14:8011)
 echo.
 
 REM ── 5. Migraciones ───────────────────────────────────────────

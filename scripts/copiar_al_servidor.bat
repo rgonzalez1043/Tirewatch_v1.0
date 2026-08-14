@@ -9,10 +9,11 @@ REM  Ejecutar desde la maquina de DESARROLLO.
 REM  El servidor debe tener acceso compartido habilitado.
 REM ============================================================
 
-REM -- Ajusta el destino segun tu servidor --
+REM -- Servidor de produccion (ajusta la carpeta si el proyecto vive en otra ruta) --
 set ORIGEN=C:\1.-Proyectos\tirewatch
-set DESTINO=\\NOMBRE-SERVIDOR\TireWatch
-REM Ejemplo con IP: set DESTINO=\\192.168.1.50\c$\TireWatch
+set DESTINO=\\192.168.38.14\c$\TireWatch
+REM  Nota: requiere acceso al recurso compartido c$ del servidor (credenciales de Admin).
+REM  Si el proyecto esta en otra carpeta del servidor, cambia la parte final del DESTINO.
 
 echo.
 echo  =====================================================
@@ -26,10 +27,12 @@ set /p CONFIRMAR=Continuar? (S/N):
 if /i not "%CONFIRMAR%"=="S" exit /b 0
 echo.
 
-REM Copiar TODO el proyecto (sin venv, cache ni archivos sensibles)
+REM Copiar el proyecto (sin venv ni cache).
+REM  - .env SI se copia (config definitiva de produccion).
+REM  - db.sqlite3 NO se copia: el servidor tiene su propia base con datos en vivo.
 robocopy "%ORIGEN%" "%DESTINO%" /MIR ^
     /XD venv __pycache__ staticfiles media .git .pytest_cache env ^
-    /XF "*.pyc" "*.pyo" ".env" "db.sqlite3" "*.log" ^
+    /XF "*.pyc" "*.pyo" "db.sqlite3" "*.log" ^
     /LOG:"%TEMP%\tirewatch_copia.log" ^
     /NP /NFL /NDL
 

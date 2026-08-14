@@ -5,7 +5,8 @@
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-4.2-green?logo=django)](https://www.djangoproject.com/)
 [![DRF](https://img.shields.io/badge/Django_REST_Framework-3.14-red)](https://www.django-rest-framework.org/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-blue?logo=sqlite)](https://www.sqlite.org/)
+[![Deploy](https://img.shields.io/badge/Deploy-Windows_NSSM_+_Waitress-0a7cff)]()
 [![License](https://img.shields.io/badge/License-Privado-lightgrey)]()
 
 ---
@@ -49,11 +50,17 @@ tirewatch/
 │   ├── web/                    # Vistas HTML (HTMX + Alpine.js)
 │   │   └── views.py            # Dashboard y vistas principales
 │   ├── templates/              # Plantillas HTML base
+│   ├── static/                 # CSS/JS/imágenes (logos STI y holding)
 │   ├── manage.py
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env.example
-├── docker-compose.yml
+│   ├── .env                    # Configuración definitiva (192.168.38.14:8011)
+│   └── venv/                   # Entorno virtual (no versionado)
+├── scripts/                    # Despliegue en servidor Windows (NSSM + Waitress)
+│   ├── desplegar.bat           # Instalación inicial en servidor nuevo
+│   ├── instalar_servicio.bat   # Registra TireWatch como servicio de Windows
+│   ├── iniciar.bat             # Arranque del servidor (lo ejecuta NSSM)
+│   ├── actualizar.bat          # Actualizar código y reiniciar servicio
+│   └── copiar_al_servidor.bat  # Copiar código desde desarrollo al servidor
 └── README.md
 ```
 
@@ -61,128 +68,83 @@ tirewatch/
 
 ## 🚀 Inicio Rápido
 
-### 🐳 Opción 1: Docker (Recomendado)
+### 💻 Desarrollo local (Windows)
 
-```bash
-# 1. Clonar el repositorio
+```powershell
+# 1. Clonar y entrar al backend
 git clone https://github.com/rgonzalez1043/Tirewatch_v1.0.git
-cd Tirewatch_v1.0
+cd Tirewatch_v1.0\backend
 
-# 2. Levantar con Docker Compose
-docker-compose up --build
+# 2. Crear y activar el entorno virtual
+python -m venv venv
+venv\Scripts\activate
+
+# 3. Instalar dependencias
+pip install -r requirements.txt
+
+# 4. (Solo desarrollo) activar DEBUG en backend\.env
+#    DJANGO_DEBUG=True
+
+# 5. Migraciones e inicialización de datos
+python manage.py migrate
+python manage.py init_tirewatch
+
+# 6. Servidor de desarrollo (puerto 8011)
+python manage.py runserver
 ```
 
 **Accesos:**
 - 🌐 **Aplicación:** http://localhost:8011
 - 🔧 **Admin Django:** http://localhost:8011/admin/
-- 👤 **Usuario inicial:** `admin` / `tirewatch2025`
 
-> ℹ️ Hot-reload activo: los cambios en el código se reflejan automáticamente sin reiniciar.
-
----
-
-### ⚙️ Opción 2: Entorno Virtual Local (sin Docker)
-
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/rgonzalez1043/Tirewatch_v1.0.git
-cd Tirewatch_v1.0/backend
-
-# 2. Crear y activar el entorno virtual
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Linux / macOS
-# source venv/bin/activate
-
-# 3. Instalar dependencias
-pip install -r requirements.txt
-
-# 4. Configurar variables de entorno
-copy .env.example .env        # Windows
-# cp .env.example .env        # Linux/macOS
-# (Editar .env con tu SECRET_KEY y configuración de BD)
-
-# 5. Aplicar migraciones e inicializar datos
-python manage.py migrate
-python manage.py init_tirewatch
-
-# 6. Iniciar el servidor de desarrollo (puerto 8011 por defecto)
-python manage.py runserver
-```
-
-> ℹ️ El comando `runserver` está personalizado para usar el puerto **8011** en lugar del 8000 de Django. Puedes forzar otro puerto con `python manage.py runserver 0.0.0.0:8080`.
-
-🌐 La app estará disponible en **http://localhost:8011**
+> ℹ️ El comando `runserver` está personalizado para usar el puerto **8011**. El `.env` viene con la configuración definitiva de producción; para desarrollo cambia solo `DJANGO_DEBUG=True`.
 
 ---
 
-### 🌍 Opción 3: Producción (Servidor)
+### 🖥️ Producción — Servidor Windows (NSSM + Waitress)
 
-```bash
-# 1. Clonar y entrar al proyecto
-git clone https://github.com/rgonzalez1043/Tirewatch_v1.0.git
-cd Tirewatch_v1.0
-
-# 2. Configurar variables de entorno de producción
-cp backend/.env.example backend/.env
-# Editar backend/.env con claves seguras y PostgreSQL
-
-# 3. Construir y correr en modo producción
-docker-compose up --build -d
-```
-
-> El `docker-compose.yml` levanta **PostgreSQL 15** y sirve la app con **Gunicorn** en el puerto **8011**.
-
-#### 🪟 Producción en Windows (sin Docker)
-
-En Windows, Gunicorn no está disponible. Usa **Waitress** (ya incluido en `requirements.txt`) junto con **WhiteNoise** para servir los estáticos:
+El servidor corre en **`192.168.38.14:8011`** como **servicio de Windows** (NSSM) sirviendo con **Waitress**. No usa Docker.
 
 ```powershell
-# Recolectar estáticos
-python manage.py collectstatic --noinput
+# --- Primera instalación en un servidor nuevo ---
+# 1. Copiar el proyecto al servidor (desde la máquina de desarrollo)
+scripts\copiar_al_servidor.bat
 
-# Servir con Waitress en el puerto 8011
-waitress-serve --listen=0.0.0.0:8011 tirewatch.wsgi:application
+# 2. En el servidor: despliegue inicial (crea venv, instala deps, migra, estáticos)
+scripts\desplegar.bat
+
+# 3. Registrar como servicio de Windows (como Administrador — requiere NSSM)
+scripts\instalar_servicio.bat
 ```
+
+```powershell
+# --- Actualizar una instalación existente ---
+scripts\copiar_al_servidor.bat     # copia los cambios de código
+scripts\actualizar.bat             # migra, recolecta estáticos y reinicia el servicio
+```
+
+> El `.env` definitivo (con `DEBUG=False`, `ALLOWED_HOSTS` y la IP del servidor) viaja con el código. La base de datos del servidor **no** se sobrescribe: `copiar_al_servidor.bat` excluye `db.sqlite3` porque el servidor recibe datos en vivo desde la web y la app Android.
 
 ---
 
 ## ⚙️ Variables de Entorno
 
-Copiar `backend/.env.example` a `backend/.env` y configurar:
+La configuración vive en `backend/.env` (ya incluida en el repo con los valores de producción):
 
 ```env
 # ── Django ──────────────────────────────────────────────
-DJANGO_SECRET_KEY=<clave-secreta-larga-y-aleatoria>   # genera una en https://djecrety.ir/
-DJANGO_DEBUG=False                                     # SIEMPRE False en producción
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1               # IPs/hosts separados por coma, sin espacios
+DJANGO_SECRET_KEY=<clave-secreta-larga-y-aleatoria>
+DJANGO_DEBUG=False                                     # True solo en desarrollo
+DJANGO_ALLOWED_HOSTS=192.168.38.14,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=http://192.168.38.14:8011         # login web con DEBUG=False
 
 # ── Base de Datos ───────────────────────────────────────
-# SQLite (por defecto — simple, ideal para uso interno)
-# DB_ENGINE=django.db.backends.sqlite3
-# DB_NAME=db.sqlite3
+# SQLite por defecto — no requiere configuración adicional.
 
-# PostgreSQL (usado por Docker; descomenta si migras el entorno local)
-# DB_ENGINE=django.db.backends.postgresql
-# DB_NAME=tirewatch
-# DB_USER=tirewatch_user
-# DB_PASSWORD=<contraseña-segura>
-# DB_HOST=localhost
-# DB_PORT=5432
-
-# ── API Externa de Horómetros ───────────────────────────
-# Servidor de flota que provee las horas de operación de los equipos
+# ── API Externa de Horómetros (servidor de flota) ───────
 HOROMETROS_API_BASE_URL=http://192.168.38.14:8009/vehiculos
 HOROMETROS_API_TIMEOUT=5
-
-# ── CORS (orígenes permitidos si hay frontend separado) ──
-# CORS_ORIGINS=http://192.168.1.50,http://localhost:3000
 ```
-
-> ⚠️ **Nunca subas el archivo `.env` al repositorio.** Ya está incluido en `.gitignore`.
 
 ---
 
@@ -251,8 +213,8 @@ HOROMETROS_API_TIMEOUT=5
 - [x] Gráficos de historial y proyección por equipo
 - [x] Sistema de autenticación y control de roles
 - [x] Panel de administración Django
-- [x] API REST completa y documentada
-- [x] Soporte Docker (PostgreSQL + Gunicorn) y despliegue Windows (Waitress)
+- [x] API REST completa y documentada (consumida por la web y la app Android)
+- [x] Despliegue como servicio de Windows (NSSM + Waitress) en la intranet
 
 ## 🗺️ Roadmap — Módulos Futuros
 
@@ -265,22 +227,22 @@ HOROMETROS_API_TIMEOUT=5
 
 ## 🗄️ Base de Datos
 
-| Entorno | Motor | Configuración |
-|---------|-------|---------------|
-| Local (venv) | SQLite 3 | Automático (por defecto en `.env.example`, no requiere configuración) |
-| Docker / Producción | PostgreSQL 15 | Preconfigurado en `docker-compose.yml` (o vía `.env`) |
+**SQLite 3** en todos los entornos — simple y sin servidor de BD adicional, ideal para uso interno en la intranet.
 
-> ℹ️ La opción **Docker (recomendada)** ya arranca PostgreSQL automáticamente. El motor SQLite solo aplica al entorno virtual local.
+> ⚠️ El servidor de producción (`192.168.38.14`) mantiene su **propia** base de datos, que recibe registros en vivo desde la web y la app Android. Los scripts de despliegue **nunca** sobrescriben `db.sqlite3` del servidor.
 
-**Configuración PostgreSQL manual:**
-```env
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=tirewatch
-DB_USER=tirewatch_user
-DB_PASSWORD=contraseña_segura
-DB_HOST=localhost
-DB_PORT=5432
-```
+---
+
+## 📱 App Android (Flutter)
+
+Existe una app móvil ([tirewatch_apk](https://github.com/rgonzalez1043/tirewatch_apk)) para registro de mediciones en terreno. Consume la misma API REST apuntando a `http://192.168.38.14:8011`:
+
+- `POST /api/auth/login/` — autenticación por token
+- `POST /api/neumaticos/mediciones/`, `/api/turbos/mediciones/`
+- `POST /api/frenos/mediciones/`, `/api/cadenas/mediciones/`
+- `GET /api/equipos/lista/`, `/api/frenos/componentes/`
+
+> ⚠️ **No modificar las rutas ni los contratos de estos endpoints** sin actualizar también la app Android.
 
 ---
 
@@ -288,11 +250,12 @@ DB_PORT=5432
 
 | Capa | Tecnología |
 |------|------------|
-| **Backend** | Python 3.11, Django 4.2, Django REST Framework 3.14, django-filter |
-| **Frontend** | HTML5, HTMX, Alpine.js, CSS vanilla |
-| **Base de Datos** | SQLite (local) / PostgreSQL 15 (Docker/prod) |
+| **Backend** | Python 3.11+, Django 4.2, Django REST Framework 3.14, django-filter |
+| **Frontend** | HTML5, HTMX, Alpine.js, Tailwind, CSS vanilla |
+| **App móvil** | Flutter (registro en terreno) |
+| **Base de Datos** | SQLite 3 |
 | **Análisis** | NumPy, Pandas, openpyxl |
-| **Deploy** | Docker, Docker Compose, Gunicorn (Linux), Waitress (Windows), WhiteNoise |
+| **Deploy** | Servicio Windows (NSSM) + Waitress + WhiteNoise |
 | **Integraciones** | API REST externa de horómetros (`requests`) |
 | **Estándares** | ISO 14224, IEEE 493 (confiabilidad) |
 

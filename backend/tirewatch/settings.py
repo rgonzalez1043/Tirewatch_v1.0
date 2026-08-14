@@ -16,9 +16,19 @@ SECRET_KEY = os.environ.get(
     "django-insecure-CAMBIAR-EN-PRODUCCION-tirewatch-sti-2025"
 )
 
-DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() == "true"
+# Producción por defecto. Para desarrollo local, define DJANGO_DEBUG=True en .env
+DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS", "192.168.38.14,localhost,127.0.0.1"
+).split(",")
+
+# Orígenes de confianza para CSRF (necesario para el login web con DEBUG=False)
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS", "http://192.168.38.14:8011"
+    ).split(",") if o.strip()
+]
 
 # =============================================================================
 # APPS
