@@ -105,8 +105,13 @@ class MedicionOpacidadViewSet(viewsets.ModelViewSet):
 class ProyeccionOpacidadViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ProyeccionOpacidad.objects.select_related("equipo", "equipo__tipo")
     serializer_class = ProyeccionOpacidadSerializer
+    pagination_class = None
     filterset_fields = ["equipo", "estado", "equipo__tipo__codigo", "control_vencido"]
-    ordering_fields = ["pct_limite", "tasa_k_anual", "semestres_a_limite"]
+    search_fields = ["equipo__numero", "equipo__nombre", "equipo__tipo__codigo"]
+    ordering_fields = [
+        "pct_limite", "k_actual", "k_limite", "tasa_k_anual",
+        "semestres_a_limite", "equipo__numero", "proximo_control", "estado"
+    ]
 
     @action(detail=False, methods=["get"])
     def resumen(self, request):

@@ -38,41 +38,163 @@
     </div>
   </div>
 
-  <!-- Stats Cards -->
+  <!-- Stats Cards (Click to filter) -->
   <div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
-    <div class="bg-navy-800 border border-navy-700 rounded-lg p-4 text-center">
+    <div @click="setFiltroEstado('TODOS')"
+      :class="filtroEstado === 'TODOS' ? 'ring-2 ring-cyan-500 bg-navy-700/80 shadow-lg' : 'hover:border-navy-600'"
+      class="bg-navy-800 border border-navy-700 rounded-lg p-4 text-center cursor-pointer transition-all duration-150 transform hover:-translate-y-0.5 select-none">
       <div class="text-3xl font-black text-cyan-400" x-text="stats.total"></div>
-      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Total Equipos</div>
+      <div class="text-[10px] text-gray-400 uppercase tracking-wider mt-1 font-semibold">Total Equipos</div>
     </div>
-    <div class="bg-navy-800 border border-red-800/40 rounded-lg p-4 text-center">
+    <div @click="setFiltroEstado('CRITICO')"
+      :class="filtroEstado === 'CRITICO' ? 'ring-2 ring-red-500 bg-red-950/40 shadow-lg' : 'hover:border-red-700/60'"
+      class="bg-navy-800 border border-red-800/40 rounded-lg p-4 text-center cursor-pointer transition-all duration-150 transform hover:-translate-y-0.5 select-none">
       <div class="text-3xl font-black text-red-400" x-text="stats.critico"></div>
-      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Críticos</div>
+      <div class="text-[10px] text-red-400/80 uppercase tracking-wider mt-1 font-semibold">Críticos</div>
     </div>
-    <div class="bg-navy-800 border border-yellow-800/40 rounded-lg p-4 text-center">
+    <div @click="setFiltroEstado('ATENCION')"
+      :class="filtroEstado === 'ATENCION' ? 'ring-2 ring-yellow-500 bg-yellow-950/40 shadow-lg' : 'hover:border-yellow-700/60'"
+      class="bg-navy-800 border border-yellow-800/40 rounded-lg p-4 text-center cursor-pointer transition-all duration-150 transform hover:-translate-y-0.5 select-none">
       <div class="text-3xl font-black text-yellow-400" x-text="stats.atencion"></div>
-      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Atención</div>
+      <div class="text-[10px] text-yellow-400/80 uppercase tracking-wider mt-1 font-semibold">Atención</div>
     </div>
-    <div class="bg-navy-800 border border-green-800/40 rounded-lg p-4 text-center">
+    <div @click="setFiltroEstado('OK')"
+      :class="filtroEstado === 'OK' ? 'ring-2 ring-green-500 bg-green-950/40 shadow-lg' : 'hover:border-green-700/60'"
+      class="bg-navy-800 border border-green-800/40 rounded-lg p-4 text-center cursor-pointer transition-all duration-150 transform hover:-translate-y-0.5 select-none">
       <div class="text-3xl font-black text-green-400" x-text="stats.ok"></div>
-      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">OK</div>
+      <div class="text-[10px] text-green-400/80 uppercase tracking-wider mt-1 font-semibold">OK</div>
     </div>
-    <div class="bg-navy-800 border border-orange-800/40 rounded-lg p-4 text-center">
+    <div @click="setFiltroEstado('VENCIDO')"
+      :class="filtroEstado === 'VENCIDO' ? 'ring-2 ring-orange-500 bg-orange-950/40 shadow-lg' : 'hover:border-orange-700/60'"
+      class="bg-navy-800 border border-orange-800/40 rounded-lg p-4 text-center cursor-pointer transition-all duration-150 transform hover:-translate-y-0.5 select-none">
       <div class="text-3xl font-black text-orange-400" x-text="stats.vencidos"></div>
-      <div class="text-[10px] text-gray-500 uppercase tracking-wider mt-1">Control Vencido</div>
+      <div class="text-[10px] text-orange-400/80 uppercase tracking-wider mt-1 font-semibold">Control Vencido</div>
     </div>
   </div>
 
   <!-- Tabla de proyecciones -->
   <div class="bg-navy-800 border border-navy-700 rounded-lg overflow-hidden">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-navy-700">
-      <h3 class="text-sm font-bold text-gray-300 uppercase tracking-wider">Proyecciones de Opacidad por Equipo</h3>
-      <button @click="recalcular()" :disabled="cargando"
-        class="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 text-gray-300 text-xs font-medium rounded-md transition-all disabled:opacity-50">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" :class="cargando ? 'animate-spin' : ''">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Recalcular
-      </button>
+    
+    <!-- Barra Superior: Pestañas de Tipo (Tractos / Portas / Todos) + Recalcular -->
+    <div class="p-4 border-b border-navy-700 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Pestañas de Flota / Tipo -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button @click="setFiltroTipo('TODOS')"
+          :class="filtroTipo === 'TODOS' ? 'bg-cyan-600 text-white font-bold shadow' : 'bg-navy-900/60 text-gray-400 hover:text-gray-200 border border-navy-700'"
+          class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+          <span>Todos</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px]" :class="filtroTipo === 'TODOS' ? 'bg-cyan-800 text-cyan-100' : 'bg-navy-800 text-gray-400'" x-text="proyecciones.length"></span>
+        </button>
+
+        <button @click="setFiltroTipo('TETR')"
+          :class="filtroTipo === 'TETR' ? 'bg-blue-600 text-white font-bold shadow' : 'bg-navy-900/60 text-gray-400 hover:text-gray-200 border border-navy-700'"
+          class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+          <span>🚜 Tractos (TETR)</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px]" :class="filtroTipo === 'TETR' ? 'bg-blue-800 text-blue-100' : 'bg-navy-800 text-gray-400'" x-text="conteoTractos"></span>
+        </button>
+
+        <button @click="setFiltroTipo('GPCO')"
+          :class="filtroTipo === 'GPCO' ? 'bg-purple-600 text-white font-bold shadow' : 'bg-navy-900/60 text-gray-400 hover:text-gray-200 border border-navy-700'"
+          class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+          <span>🏗️ Portas (GPCO)</span>
+          <span class="px-1.5 py-0.5 rounded-full text-[10px]" :class="filtroTipo === 'GPCO' ? 'bg-purple-800 text-purple-100' : 'bg-navy-800 text-gray-400'" x-text="conteoPortas"></span>
+        </button>
+
+        <template x-if="conteoChasis > 0">
+          <button @click="setFiltroTipo('CHA')"
+            :class="filtroTipo === 'CHA' ? 'bg-teal-600 text-white font-bold shadow' : 'bg-navy-900/60 text-gray-400 hover:text-gray-200 border border-navy-700'"
+            class="px-3.5 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+            <span>Chasis (CHA)</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px]" :class="filtroTipo === 'CHA' ? 'bg-teal-800 text-teal-100' : 'bg-navy-800 text-gray-400'" x-text="conteoChasis"></span>
+          </button>
+        </template>
+      </div>
+
+      <!-- Acciones derecha -->
+      <div class="flex items-center gap-3">
+        <button @click="recalcular()" :disabled="cargando"
+          class="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 text-gray-200 text-xs font-semibold rounded-md border border-navy-600 transition-all disabled:opacity-50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" :class="cargando ? 'animate-spin' : ''">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span x-text="cargando ? 'Recalculando...' : 'Recalcular Proyecciones'"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra Secundaria: Buscador + Filtros por Estado + Selector de Orden -->
+    <div class="px-4 py-3 bg-navy-900/40 border-b border-navy-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+      
+      <!-- Buscador con icono y botón de limpiar -->
+      <div class="relative flex-1 min-w-[220px] max-w-md">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+        <input x-model="busqueda" @input="paginaActual = 1" type="text"
+          placeholder="Buscar por equipo (ej: 2156, 70, Kalmar...)"
+          class="w-full bg-navy-900 border border-navy-700 rounded-lg pl-9 pr-8 py-1.5 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors">
+        <button x-show="busqueda" @click="busqueda = ''; paginaActual = 1" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-500 hover:text-gray-300">
+          ✕
+        </button>
+      </div>
+
+      <!-- Filtros desplegables y controles -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <!-- Filtro Estado -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-gray-500 text-[11px]">Estado:</span>
+          <select x-model="filtroEstado" @change="paginaActual = 1"
+            class="bg-navy-900 border border-navy-700 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+            <option value="TODOS">Todos los Estados</option>
+            <option value="CRITICO">🔴 Críticos</option>
+            <option value="ATENCION">🟡 Atención</option>
+            <option value="OK">🟢 OK</option>
+            <option value="VENCIDO">🟠 Control Vencido</option>
+          </select>
+        </div>
+
+        <!-- Selector de Orden -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-gray-500 text-[11px]">Ordenar:</span>
+          <select x-model="ordenCol" @change="paginaActual = 1"
+            class="bg-navy-900 border border-navy-700 text-gray-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-500">
+            <option value="pct_limite">% del Límite</option>
+            <option value="k_actual">k Actual</option>
+            <option value="equipo">N° de Equipo</option>
+            <option value="tasa_k_anual">Tasa Anual</option>
+            <option value="proximo_control">Próx. Control</option>
+            <option value="estado">Semáforo</option>
+          </select>
+          <button @click="ordenDir = ordenDir === 'asc' ? 'desc' : 'asc'; paginaActual = 1"
+            class="px-2 py-1.5 bg-navy-900 border border-navy-700 text-gray-300 hover:text-white rounded-lg cursor-pointer"
+            :title="ordenDir === 'asc' ? 'Ascendente (menor a mayor)' : 'Descendente (mayor a menor)'">
+            <span x-text="ordenDir === 'asc' ? '▲ Asc' : '▼ Desc'"></span>
+          </button>
+        </div>
+
+        <!-- Filas por página -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-gray-500 text-[11px]">Ver:</span>
+          <select x-model="porPagina" @change="paginaActual = 1"
+            class="bg-navy-900 border border-navy-700 text-gray-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-cyan-500">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="TODOS">Todos</option>
+          </select>
+        </div>
+
+        <!-- Botón Limpiar filtros si hay alguno activo -->
+        <template x-if="filtroTipo !== 'TODOS' || filtroEstado !== 'TODOS' || busqueda">
+          <button @click="limpiarFiltros()"
+            class="px-2.5 py-1.5 bg-navy-700 hover:bg-navy-600 text-cyan-400 text-xs rounded-lg transition-colors font-medium flex items-center gap-1 cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            Limpiar filtros
+          </button>
+        </template>
+      </div>
+
     </div>
 
     <template x-if="proyecciones.length === 0 && !cargando">
@@ -86,26 +208,85 @@
       </div>
     </template>
 
-    <template x-if="proyecciones.length > 0">
+    <template x-if="proyecciones.length > 0 && proyeccionesFiltradas.length === 0 && !cargando">
+      <div class="p-12 text-center">
+        <div class="text-3xl mb-2">🔍</div>
+        <p class="text-gray-400 text-sm font-semibold">No se encontraron equipos con los filtros seleccionados.</p>
+        <p class="text-gray-500 text-xs mt-1">Prueba cambiando el tipo de equipo, el estado o limpiando la búsqueda.</p>
+        <button @click="limpiarFiltros()" class="mt-3 px-3 py-1.5 bg-navy-700 hover:bg-navy-600 text-cyan-400 text-xs rounded-lg transition-all">
+          Restablecer filtros
+        </button>
+      </div>
+    </template>
+
+    <template x-if="proyeccionesFiltradas.length > 0">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-left border-b border-navy-700">
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Equipo</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">k Actual</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Límite</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">% del Límite</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tasa /año</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">k Proyectado</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Mediciones</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Próx. Control</th>
-              <th class="px-4 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+            <tr class="text-left border-b border-navy-700 bg-navy-900/30 select-none">
+              <th @click="ordenarPor('equipo')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>Equipo</span>
+                  <span x-show="ordenCol === 'equipo'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('k_actual')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>k Actual</span>
+                  <span x-show="ordenCol === 'k_actual'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('k_limite')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>Límite</span>
+                  <span x-show="ordenCol === 'k_limite'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('pct_limite')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>% del Límite</span>
+                  <span x-show="ordenCol === 'pct_limite'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('tasa_k_anual')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>Tasa /año</span>
+                  <span x-show="ordenCol === 'tasa_k_anual'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('k_proyectado')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>k Proyectado</span>
+                  <span x-show="ordenCol === 'k_proyectado'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('n_mediciones')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center cursor-pointer hover:text-white">
+                <div class="flex items-center justify-center gap-1">
+                  <span>Mediciones</span>
+                  <span x-show="ordenCol === 'n_mediciones'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('proximo_control')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>Próx. Control</span>
+                  <span x-show="ordenCol === 'proximo_control'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
+              <th @click="ordenarPor('estado')" class="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-white">
+                <div class="flex items-center gap-1">
+                  <span>Estado</span>
+                  <span x-show="ordenCol === 'estado'" x-text="ordenDir === 'asc' ? '▲' : '▼'" class="text-cyan-400"></span>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            <template x-for="p in proyecciones" :key="p.id">
+            <template x-for="p in proyeccionesPaginadas" :key="p.id">
               <tr class="border-b border-navy-700/50 hover:bg-navy-700/30 transition-colors">
-                <td class="px-4 py-3 font-bold font-mono text-gray-200" x-text="p.equipo_codigo || (p.equipo_tipo + '-' + p.equipo_numero)"></td>
+                <td class="px-4 py-3 font-bold font-mono text-gray-200">
+                  <a :href="'/equipos/' + p.equipo_numero + '/'" class="hover:text-cyan-400 hover:underline flex items-center gap-1.5"
+                    x-text="p.equipo_codigo || (p.equipo_tipo + '-' + p.equipo_numero)"></a>
+                </td>
                 <td class="px-4 py-3 font-mono font-bold"
                   :class="p.pct_limite >= 0.85 ? 'text-red-400' : p.pct_limite >= 0.70 ? 'text-yellow-400' : 'text-green-400'"
                   x-text="p.k_actual !== null ? p.k_actual.toFixed(2) : '—'"></td>
@@ -143,6 +324,36 @@
             </template>
           </tbody>
         </table>
+
+        <!-- Paginación y contador al pie de la tabla -->
+        <div class="px-6 py-3 border-t border-navy-700 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-400 bg-navy-900/30">
+          <div>
+            <span>Mostrando <strong class="text-gray-200" x-text="proyeccionesFiltradas.length ? ((paginaActual - 1) * (porPagina === 'TODOS' ? proyeccionesFiltradas.length : parseInt(porPagina)) + 1) : 0"></strong> - <strong class="text-gray-200" x-text="porPagina === 'TODOS' ? proyeccionesFiltradas.length : Math.min(paginaActual * parseInt(porPagina), proyeccionesFiltradas.length)"></strong> de <strong class="text-gray-200" x-text="proyeccionesFiltradas.length"></strong> equipos</span>
+            <template x-if="proyeccionesFiltradas.length !== proyecciones.length">
+              <span class="text-gray-500" x-text="'(filtrados de ' + proyecciones.length + ' totales)'"></span>
+            </template>
+          </div>
+
+          <template x-if="porPagina !== 'TODOS' && totalPaginas > 1">
+            <div class="flex items-center gap-1.5">
+              <button @click="paginaActual = Math.max(1, paginaActual - 1)" :disabled="paginaActual <= 1"
+                class="px-2.5 py-1 rounded bg-navy-800 border border-navy-700 hover:bg-navy-700 disabled:opacity-30 transition-colors cursor-pointer">
+                ‹ Anterior
+              </button>
+              <template x-for="num in totalPaginas" :key="num">
+                <button @click="paginaActual = num"
+                  x-show="totalPaginas <= 7 || Math.abs(num - paginaActual) <= 2 || num === 1 || num === totalPaginas"
+                  :class="paginaActual === num ? 'bg-cyan-600 text-white font-bold' : 'bg-navy-800 border border-navy-700 hover:bg-navy-700 text-gray-300'"
+                  class="w-7 h-7 rounded text-xs transition-colors cursor-pointer" x-text="num"></button>
+              </template>
+              <button @click="paginaActual = Math.min(totalPaginas, paginaActual + 1)" :disabled="paginaActual >= totalPaginas"
+                class="px-2.5 py-1 rounded bg-navy-800 border border-navy-700 hover:bg-navy-700 disabled:opacity-30 transition-colors cursor-pointer">
+                Siguiente ›
+              </button>
+            </div>
+          </template>
+        </div>
+
       </div>
     </template>
 
@@ -411,6 +622,146 @@ function opacidadDashboard() {
     okMsg: '',
     tiposEquipo: [],
     resultados: [],
+
+    // --- Filtros, Búsqueda, Orden y Paginación ---
+    filtroTipo: 'TODOS',
+    filtroEstado: 'TODOS',
+    busqueda: '',
+    ordenCol: 'pct_limite',
+    ordenDir: 'desc',
+    paginaActual: 1,
+    porPagina: 50,
+
+    get conteoTractos() {
+      return (this.proyecciones || []).filter(p => p.equipo_tipo === 'TETR' || (p.equipo_codigo && p.equipo_codigo.startsWith('TETR'))).length;
+    },
+    get conteoPortas() {
+      return (this.proyecciones || []).filter(p => p.equipo_tipo === 'GPCO' || (p.equipo_codigo && p.equipo_codigo.startsWith('GPCO'))).length;
+    },
+    get conteoChasis() {
+      return (this.proyecciones || []).filter(p => p.equipo_tipo === 'CHA' || (p.equipo_codigo && p.equipo_codigo.startsWith('CHA'))).length;
+    },
+
+    get proyeccionesFiltradas() {
+      let list = this.proyecciones || [];
+
+      // Filtro Tipo (Tracto / Porta / Chasis / Todos)
+      if (this.filtroTipo !== 'TODOS') {
+        list = list.filter(p => {
+          const cod = (p.equipo_codigo || (p.equipo_tipo + '-' + p.equipo_numero) || '').toUpperCase();
+          const tip = (p.equipo_tipo || '').toUpperCase();
+          return tip === this.filtroTipo || cod.startsWith(this.filtroTipo);
+        });
+      }
+
+      // Filtro Estado (Críticos / Atención / OK / Vencidos)
+      if (this.filtroEstado !== 'TODOS') {
+        if (this.filtroEstado === 'VENCIDO') {
+          list = list.filter(p => p.control_vencido);
+        } else {
+          list = list.filter(p => p.estado === this.filtroEstado);
+        }
+      }
+
+      // Buscador en tiempo real
+      if (this.busqueda && this.busqueda.trim()) {
+        const q = this.busqueda.trim().toLowerCase();
+        list = list.filter(p => {
+          const cod = (p.equipo_codigo || (p.equipo_tipo + '-' + p.equipo_numero) || '').toLowerCase();
+          const num = String(p.equipo_numero || '');
+          const est = (p.estado || '').toLowerCase();
+          const mot = (p.motivo_estado || '').toLowerCase();
+          return cod.includes(q) || num.includes(q) || est.includes(q) || mot.includes(q);
+        });
+      }
+
+      // Ordenamiento
+      const col = this.ordenCol;
+      const asc = this.ordenDir === 'asc';
+      list = [...list].sort((a, b) => {
+        let va, vb;
+        if (col === 'equipo') {
+          va = a.equipo_numero ?? 0;
+          vb = b.equipo_numero ?? 0;
+        } else if (col === 'k_actual') {
+          va = a.k_actual ?? -999;
+          vb = b.k_actual ?? -999;
+        } else if (col === 'k_limite') {
+          va = a.k_limite ?? -999;
+          vb = b.k_limite ?? -999;
+        } else if (col === 'pct_limite') {
+          va = a.pct_limite ?? -999;
+          vb = b.pct_limite ?? -999;
+        } else if (col === 'tasa_k_anual') {
+          va = a.tasa_k_anual ?? -999;
+          vb = b.tasa_k_anual ?? -999;
+        } else if (col === 'k_proyectado') {
+          va = a.k_proyectado ?? -999;
+          vb = b.k_proyectado ?? -999;
+        } else if (col === 'n_mediciones') {
+          va = a.n_mediciones ?? 0;
+          vb = b.n_mediciones ?? 0;
+        } else if (col === 'proximo_control') {
+          va = a.proximo_control || '';
+          vb = b.proximo_control || '';
+        } else if (col === 'estado') {
+          const rank = { 'CRITICO': 3, 'ATENCION': 2, 'OK': 1 };
+          va = rank[a.estado] || 0;
+          vb = rank[b.estado] || 0;
+        } else {
+          va = a.pct_limite ?? -999;
+          vb = b.pct_limite ?? -999;
+        }
+        if (va < vb) return asc ? -1 : 1;
+        if (va > vb) return asc ? 1 : -1;
+        return 0;
+      });
+
+      return list;
+    },
+
+    get totalPaginas() {
+      if (this.porPagina === 'TODOS') return 1;
+      const n = parseInt(this.porPagina) || 50;
+      return Math.max(1, Math.ceil(this.proyeccionesFiltradas.length / n));
+    },
+
+    get proyeccionesPaginadas() {
+      if (this.porPagina === 'TODOS') return this.proyeccionesFiltradas;
+      const n = parseInt(this.porPagina) || 50;
+      const inicio = (this.paginaActual - 1) * n;
+      return this.proyeccionesFiltradas.slice(inicio, inicio + n);
+    },
+
+    ordenarPor(col) {
+      if (this.ordenCol === col) {
+        this.ordenDir = this.ordenDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.ordenCol = col;
+        this.ordenDir = (col === 'equipo' || col === 'proximo_control') ? 'asc' : 'desc';
+      }
+      this.paginaActual = 1;
+    },
+
+    setFiltroTipo(t) {
+      this.filtroTipo = t;
+      this.paginaActual = 1;
+    },
+
+    setFiltroEstado(e) {
+      this.filtroEstado = this.filtroEstado === e ? 'TODOS' : e;
+      this.paginaActual = 1;
+    },
+
+    limpiarFiltros() {
+      this.filtroTipo = 'TODOS';
+      this.filtroEstado = 'TODOS';
+      this.busqueda = '';
+      this.ordenCol = 'pct_limite';
+      this.ordenDir = 'desc';
+      this.paginaActual = 1;
+    },
+
     get nPendientes() { return this.resultados.filter(r => r.ok && !r.hecho).length; },
     get nGuardados() { return this.resultados.filter(r => r.hecho).length; },
     get nProblemas() { return this.resultados.filter(r => !r.ok).length; },
