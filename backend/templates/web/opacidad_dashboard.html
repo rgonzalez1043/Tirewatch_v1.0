@@ -260,7 +260,12 @@
                       <input x-model="res.conf.k_limite" type="number" step="0.01" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
                     </div>
                     <div>
-                      <div class="text-[9px] text-gray-500 uppercase">Horóm.</div>
+                      <div class="flex items-center justify-between text-[9px] text-gray-500 uppercase">
+                        <span>Horóm.</span>
+                        <button type="button" @click="consultarHorometroRow(res)" :disabled="res.consultandoH" class="text-cyan-400 hover:text-cyan-300 lowercase font-bold" title="Consultar horómetro de esta fecha en la API">
+                          <span x-text="res.consultandoH ? '...' : '⚡api'"></span>
+                        </button>
+                      </div>
                       <input x-model="res.conf.horometro_motor" type="number" placeholder="opc" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
                     </div>
                   </div>
@@ -341,7 +346,12 @@
                 class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Ej: 3.00" />
             </div>
             <div class="space-y-1">
-              <label class="text-[10px] text-gray-500 uppercase">Horómetro</label>
+              <div class="flex items-center justify-between">
+                <label class="text-[10px] text-gray-500 uppercase">Horómetro</label>
+                <button type="button" @click="consultarHorometroManual()" :disabled="cargandoHorometro" class="text-[10px] text-cyan-400 hover:text-cyan-300 lowercase font-bold" title="Consultar horómetro en la API">
+                  <span x-text="cargandoHorometro ? 'consultando...' : '⚡ consultar api'"></span>
+                </button>
+              </div>
               <input x-model="man.horometro_motor" type="number"
                 class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="opcional" />
             </div>
@@ -392,6 +402,7 @@ function opacidadDashboard() {
     proyecciones: [],
     stats: { total: {{ stats.total }}, critico: {{ stats.criticos }}, atencion: {{ stats.atencion }}, ok: {{ stats.ok }}, vencidos: 0 },
     cargando: false,
+    cargandoHorometro: false,
     modalPdf: false,
     modalManual: false,
     subiendo: false,
@@ -479,14 +490,25 @@ function opacidadDashboard() {
         const nuevos = (d.resultados || []).map(res => {
           if (res.ok && res.importacion) {
             const ex = res.importacion.datos_extraidos || {};
+            let tipoSugeridoId = '';
+            if (ex.tipo_pista && this.tiposEquipo.length) {
+              const tObj = this.tiposEquipo.find(t => t.codigo === ex.tipo_pista);
+              if (tObj) tipoSugeridoId = tObj.id;
+            }
             res.conf = {
-              tipo_id: '', numero: res.importacion.matricula_detectada || '',
-              fecha: ex.fecha || '', k_medio: ex.k_medio ?? '',
+              tipo_id: tipoSugeridoId,
+              numero: res.importacion.matricula_detectada || ex.matricula || '',
+              fecha: ex.fecha || '',
+              k_medio: ex.k_medio ?? '',
               k_limite: (ex.k_limite ?? {{ config.limite_opacidad_k_default }}),
-              horometro_motor: '', operador: ex.operador || ''
+              horometro_motor: ex.horometro_motor || '',
+              operador: ex.operador || ''
             };
           }
-          res.hecho = false; res.guardando = false; res.error = '';
+          res.hecho = false;
+          res.guardando = false;
+          res.consultandoH = false;
+          res.error = '';
           return res;
         });
         this.resultados = this.resultados.concat(nuevos);
@@ -494,33 +516,84 @@ function opacidadDashboard() {
       finally { this.subiendo = false; ev.target.value = ''; }
     },
 
+    async consultarHorometroRow(res) {
+      let tipoCod = '';
+      let num = '';
+      if (res.importacion.equipo_sugerido) {
+        const cod = res.importacion.equipo_sugerido_codigo || '';
+        const parts = cod.split('-');
+        tipoCod = parts[0];
+        num = parts[1];
+      } else {
+        const t = this.tiposEquipo.find(t => t.id == res.conf.tipo_id);
+        tipoCod = t ? t.codigo : '';
+        num = res.conf.numero;
+      }
+      if (!tipoCod || !num) {
+        res.error = 'Selecciona tipo y número para consultar horómetro.';
+        return;
+      }
+      res.consultandoH = true;
+      res.error = '';
+      try {
+        const f = res.conf.fecha ? `&fecha=${res.conf.fecha}` : '';
+        const r = await fetch(`/api/equipos/horometro/?tipo=${tipoCod}&numero=${num}${f}`, {
+          headers: { 'Authorization': 'Token ' + this._token() }
+        });
+        const data = await r.json();
+        if (data.disponible && data.horometro !== null && data.horometro !== undefined) {
+          res.conf.horometro_motor = Math.round(data.horometro);
+        } else {
+          res.error = data.error || 'Horómetro no disponible en la API para esa fecha.';
+        }
+      } catch (e) {
+        res.error = 'Error conectando con API de horómetros.';
+      } finally {
+        res.consultandoH = false;
+      }
+    },
+
     async confirmarUno(res, refrescar = true) {
       res.guardando = true; res.error = '';
       try {
-        let equipoId = res.importacion.equipo_sugerido;
-        if (!equipoId) {
-          if (!res.conf.tipo_id || !res.conf.numero) { res.error = 'Falta tipo/número de equipo.'; return false; }
-          equipoId = await this._resolverEquipo(res.conf.tipo_id, res.conf.numero);
-          if (!equipoId) { res.error = 'Equipo no encontrado en el catálogo.'; return false; }
-        }
-        const payload = {
-          equipo: equipoId, fecha: res.conf.fecha,
-          k_medio: parseFloat(res.conf.k_medio), k_limite: parseFloat(res.conf.k_limite),
+        let payload = {
+          fecha: res.conf.fecha,
+          k_medio: parseFloat(res.conf.k_medio),
+          k_limite: parseFloat(res.conf.k_limite),
           horometro_motor: res.conf.horometro_motor ? parseInt(res.conf.horometro_motor) : null,
           operador: res.conf.operador || ''
         };
+        if (res.importacion.equipo_sugerido) {
+          payload.equipo = res.importacion.equipo_sugerido;
+        } else {
+          if (!res.conf.tipo_id || !res.conf.numero) {
+            res.error = 'Falta tipo o número de equipo.';
+            res.guardando = false;
+            return false;
+          }
+          payload.tipo_id = parseInt(res.conf.tipo_id);
+          payload.numero = parseInt(res.conf.numero);
+        }
         const r = await fetch(`/api/opacidad/importaciones/${res.importacion.id}/confirmar/`, {
           method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
         });
-        if (!r.ok) { const err = await r.json(); res.error = err.detail || JSON.stringify(err); return false; }
+        if (!r.ok) {
+          const err = await r.json();
+          res.error = err.detail || JSON.stringify(err);
+          return false;
+        }
         res.hecho = true;
         if (refrescar) {
           this.okMsg = '✅ Medición guardada.';
           await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
         }
         return true;
-      } catch(e) { res.error = 'Error: ' + e.message; return false; }
-      finally { res.guardando = false; }
+      } catch(e) {
+        res.error = 'Error: ' + e.message;
+        return false;
+      } finally {
+        res.guardando = false;
+      }
     },
 
     async confirmarTodos() {
@@ -545,30 +618,63 @@ function opacidadDashboard() {
       this.modalManual = true;
     },
 
+    async consultarHorometroManual() {
+      const t = this.tiposEquipo.find(t => t.id == this.man.tipo_id);
+      if (!t || !this.man.numero) {
+        this.errorMsg = 'Selecciona tipo y número de equipo primero.';
+        return;
+      }
+      this.cargandoHorometro = true;
+      this.errorMsg = '';
+      try {
+        const f = this.man.fecha ? `&fecha=${this.man.fecha}` : '';
+        const r = await fetch(`/api/equipos/horometro/?tipo=${t.codigo}&numero=${this.man.numero}${f}`, {
+          headers: { 'Authorization': 'Token ' + this._token() }
+        });
+        const data = await r.json();
+        if (data.disponible && data.horometro !== null && data.horometro !== undefined) {
+          this.man.horometro_motor = Math.round(data.horometro);
+          this.okMsg = `⚡ Horómetro obtenido de la API: ${Math.round(data.horometro).toLocaleString()} hrs (${data.codigo_externo})`;
+        } else {
+          this.errorMsg = data.error || 'Horómetro no disponible en la API para esa fecha.';
+        }
+      } catch (e) {
+        this.errorMsg = 'Error conectando con API de horómetros.';
+      } finally {
+        this.cargandoHorometro = false;
+      }
+    },
+
     async guardarManual() {
       this.guardando = true; this.errorMsg = ''; this.okMsg = '';
       try {
-        const equipoId = await this._resolverEquipo(this.man.tipo_id, this.man.numero);
-        if (!equipoId) {
-          const t = this.tiposEquipo.find(t => t.id == this.man.tipo_id);
-          this.errorMsg = `No se encontró el equipo ${t ? t.codigo + '-' : ''}${this.man.numero}`;
-          this.guardando = false; return;
-        }
         const payload = {
-          equipo: equipoId, fecha: this.man.fecha, origen: 'MANUAL',
-          k_medio: parseFloat(this.man.k_medio), k_limite: parseFloat(this.man.k_limite),
+          tipo_id: parseInt(this.man.tipo_id),
+          numero: parseInt(this.man.numero),
+          fecha: this.man.fecha,
+          origen: 'MANUAL',
+          k_medio: parseFloat(this.man.k_medio),
+          k_limite: parseFloat(this.man.k_limite),
           horometro_motor: this.man.horometro_motor ? parseInt(this.man.horometro_motor) : null,
-          operador: this.man.operador || '', observaciones: this.man.observaciones || ''
+          operador: this.man.operador || '',
+          observaciones: this.man.observaciones || ''
         };
-        const r = await fetch('/api/opacidad/mediciones/', { method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload) });
-        if (!r.ok) { const err = await r.json(); this.errorMsg = JSON.stringify(err); }
-        else {
+        const r = await fetch('/api/opacidad/mediciones/', {
+          method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
+        });
+        if (!r.ok) {
+          const err = await r.json();
+          this.errorMsg = err.detail || JSON.stringify(err);
+        } else {
           this.okMsg = '✅ Medición registrada. Proyección actualizada.';
           await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
           setTimeout(() => { this.modalManual = false; }, 1500);
         }
-      } catch(e) { this.errorMsg = 'Error de conexión: ' + e.message; }
-      finally { this.guardando = false; }
+      } catch(e) {
+        this.errorMsg = 'Error de conexión: ' + e.message;
+      } finally {
+        this.guardando = false;
+      }
     }
   }
 }

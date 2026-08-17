@@ -1,3 +1,4 @@
+import logging
 from django.db import transaction
 from django.db.models import Count, Q
 from rest_framework import viewsets, status
@@ -6,7 +7,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from equipos.models import Equipo
+from equipos.models import Equipo, TipoEquipo
+
+logger = logging.getLogger(__name__)
 from .models import (
     Opacimetro, MedicionOpacidad, AceleracionOpacidad,
     ProyeccionOpacidad, ImportacionOpacidad,
@@ -176,7 +179,8 @@ class ImportarPDFView(APIView):
                     "detail": f"No se pudo leer el PDF: {exc}",
                 }
 
-            equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias)
+            tipo_pista = datos.get("tipo_pista", "")
+            equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias, tipo_pista=tipo_pista)
 
             datos_json = {k: v for k, v in datos.items() if k != "texto_crudo"}
             datos_json["fecha"] = str(datos_json.get("fecha") or "")
@@ -184,6 +188,21 @@ class ImportarPDFView(APIView):
             if opac.get("vencimiento_control"):
                 opac["vencimiento_control"] = str(opac["vencimiento_control"])
                 datos_json["opacimetro"] = opac
+
+            # Consulta automática de horómetro si equipo/tipo y fecha están disponibles
+            fecha_test = datos_json.get("fecha")
+            if fecha_test:
+                from equipos.services import consultar_horometro_externo
+                tipo_cod = equipo.tipo.codigo if equipo else (tipo_pista or "GPCO")
+                num_equipo = equipo.numero if equipo else datos.get("matricula")
+                if tipo_cod and num_equipo:
+                    try:
+                        res_h = consultar_horometro_externo(tipo_cod, num_equipo, fecha=fecha_test)
+                        if res_h.get("disponible") and res_h.get("horometro") is not None:
+                            datos_json["horometro_motor"] = int(res_h["horometro"])
+                            datos_json["horometro_origen"] = "API"
+                    except Exception as e:
+                        logger.warning("Error consultando horometro en importacion: %s", e)
 
             imp = ImportacionOpacidad.objects.create(
                 archivo=archivo,
@@ -206,30 +225,55 @@ class ImportarPDFView(APIView):
             }
 
     @staticmethod
-    def _resolver_equipo(matricula, vin, advertencias):
+    def _resolver_equipo(matricula, vin, advertencias, tipo_pista=""):
         """
-        La matricula del informe (ej. 2178) mapea a Equipo.numero, pero el
-        numero solo es unico DENTRO del tipo. El VIN trae el tipo de forma
-        no estandarizada ('TRACTO'), asi que se usa como pista, no como verdad.
+        La matricula del informe (ej. 2178, 178, 70) mapea a Equipo.numero.
+        Maneja heurísticas para desambiguar entre tipos y equivalencias de número (ej. 2178 <-> 178 para tractos).
         """
         if not matricula or not str(matricula).isdigit():
             advertencias.append("No se pudo asociar automaticamente a un equipo")
             return None
 
-        candidatos = list(Equipo.objects.filter(numero=int(matricula)))
+        num = int(matricula)
+        candidatos = list(Equipo.objects.filter(numero=num).select_related("tipo"))
+
+        # Si no se encuentra y num > 1000 (ej. 2178), buscar también por num % 1000 (ej. 178)
+        if not candidatos and num > 1000:
+            candidatos = list(Equipo.objects.filter(numero=num % 1000).select_related("tipo"))
+
+        # Si no se encuentra y num < 1000 (ej. 178), buscar también por num + 2000 (ej. 2178)
         if not candidatos:
-            advertencias.append(f"No existe ningun equipo con numero {matricula}")
+            candidatos = list(Equipo.objects.filter(numero=num + 2000).select_related("tipo"))
+
+        if not candidatos:
+            advertencias.append(f"No existe ningún equipo registrado con número {matricula}")
             return None
+
         if len(candidatos) == 1:
             return candidatos[0]
 
-        pista = (vin or "").strip().upper()
-        match = [e for e in candidatos if pista and pista in e.tipo.codigo.upper()]
+        pista = (tipo_pista or vin or "").strip().upper()
+        # Heurística de matching por código de tipo o nombre de tipo
+        tipo_map = {
+            "TRACTO": "TETR", "TRA": "TETR", "TETR": "TETR",
+            "PORTA": "GPCO", "POR": "GPCO", "GPCO": "GPCO",
+            "CHASIS": "CHA", "CHA": "CHA",
+        }
+        codigo_esperado = tipo_map.get(pista)
+        if codigo_esperado:
+            match = [e for e in candidatos if e.tipo.codigo.upper() == codigo_esperado]
+            if len(match) == 1:
+                return match[0]
+
+        match = [
+            e for e in candidatos
+            if pista and (pista in e.tipo.codigo.upper() or pista in e.tipo.nombre.upper())
+        ]
         if len(match) == 1:
             return match[0]
 
         advertencias.append(
-            f"El numero {matricula} existe en varios tipos de equipo "
+            f"El número {matricula} existe en varios tipos de equipo "
             f"({', '.join(e.codigo_completo for e in candidatos)}). Seleccione manualmente."
         )
         return None
@@ -260,10 +304,37 @@ class ImportacionOpacidadViewSet(viewsets.ReadOnlyModelViewSet):
         d = imp.datos_extraidos
 
         with transaction.atomic():
+            equipo = v.get("equipo")
+            if not equipo:
+                tipo_id = v.get("tipo_id")
+                numero = v.get("numero")
+                if not tipo_id or not numero:
+                    return Response(
+                        {"detail": "Debe especificar un equipo o indicar tipo y número."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                try:
+                    tipo_obj = TipoEquipo.objects.get(id=tipo_id)
+                except TipoEquipo.DoesNotExist:
+                    return Response({"detail": "Tipo de equipo no válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+                equipo, _ = Equipo.objects.get_or_create(
+                    tipo=tipo_obj,
+                    numero=numero,
+                    defaults={"nombre": f"{tipo_obj.nombre} {numero}"},
+                )
+
+            medicion_existente = MedicionOpacidad.objects.filter(equipo=equipo, fecha=v["fecha"], anulado=False).first()
+            if medicion_existente:
+                return Response(
+                    {"detail": f"Ya existe una medición activa para el equipo {equipo.codigo_completo} en la fecha {v['fecha']}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             opacimetro = self._get_opacimetro(d.get("opacimetro"))
 
             medicion = MedicionOpacidad(
-                equipo=v["equipo"],
+                equipo=equipo,
                 fecha=v["fecha"],
                 hora=d.get("hora") or None,
                 horometro_motor=v.get("horometro_motor"),
@@ -282,7 +353,12 @@ class ImportacionOpacidadViewSet(viewsets.ReadOnlyModelViewSet):
                 texto_crudo=d.get("texto_crudo", ""),
                 registrado_por=request.user if request.user.is_authenticated else None,
             )
-            medicion.archivo.save(imp.nombre_original, imp.archivo.file, save=False)
+            if imp.archivo:
+                try:
+                    imp.archivo.open("rb")
+                    medicion.archivo.save(imp.nombre_original or "informe.pdf", imp.archivo, save=False)
+                except Exception as e:
+                    logger.warning("No se pudo copiar archivo adjunto: %s", e)
             medicion.save()
 
             for a in d.get("aceleraciones", []):
@@ -317,15 +393,29 @@ class ImportacionOpacidadViewSet(viewsets.ReadOnlyModelViewSet):
     def _get_opacimetro(data):
         if not data or not data.get("numero_serie"):
             return None
-        obj, _ = Opacimetro.objects.get_or_create(
+        venc = data.get("vencimiento_control")
+        if isinstance(venc, str):
+            from datetime import date
+            try:
+                venc = date.fromisoformat(venc)
+            except ValueError:
+                venc = None
+
+        defaults = {
+            "fabricante": data.get("fabricante") or "TEXA SPA",
+            "modelo": data.get("modelo") or "OPABOX Autopower",
+            "numero_homologacion": data.get("numero_homologacion") or "",
+        }
+        if venc:
+            defaults["vencimiento_control"] = venc
+
+        obj, created = Opacimetro.objects.get_or_create(
             numero_serie=data["numero_serie"],
-            defaults={
-                "fabricante": data.get("fabricante", ""),
-                "modelo": data.get("modelo", ""),
-                "numero_homologacion": data.get("numero_homologacion", ""),
-                "vencimiento_control": data.get("vencimiento_control"),
-            },
+            defaults=defaults,
         )
+        if not created and venc and obj.vencimiento_control != venc:
+            obj.vencimiento_control = venc
+            obj.save(update_fields=["vencimiento_control"])
         return obj
 
 

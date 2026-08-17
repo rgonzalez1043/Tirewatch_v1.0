@@ -46,19 +46,20 @@ class MarcaComponenteViewSet(viewsets.ModelViewSet):
 def horometro_externo(request):
     """
     Proxy hacia la API interna de horómetros.
-    Consulta el horómetro actual de un equipo por tipo y número.
+    Consulta el horómetro de un equipo por tipo, número y fecha opcional.
 
     Parámetros:
-        ?tipo=GPCO&numero=55   → llama a POR-0055/horometros
-        ?tipo=TETR&numero=174  → llama a TRA-0174/horometros
+        ?tipo=GPCO&numero=55[&fecha=2026-06-18]   → llama a POR-0055/horometros
+        ?tipo=TETR&numero=2178[&fecha=2026-06-18] → llama a TRA-2178/horometros (o TRA-0178)
 
     Respuesta:
-        { codigo_externo, horometro, fecha, disponible }
+        { codigo_externo, horometro, fecha, disponible, error }
     """
-    import requests as req
+    from .services import consultar_horometro_externo
 
     tipo = request.query_params.get("tipo", "").upper()
     numero = request.query_params.get("numero", "").strip()
+    fecha = request.query_params.get("fecha", "").strip() or None
 
     if not tipo or not numero:
         return Response(
@@ -66,61 +67,10 @@ def horometro_externo(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    prefijo = _PREFIJO_API.get(tipo)
-    if not prefijo:
-        return Response(
-            {"error": f"Tipo '{tipo}' no soportado. Usa GPCO, TETR o CHA."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    res = consultar_horometro_externo(tipo, numero, fecha=fecha)
+    if not res["disponible"]:
+        status_code = status.HTTP_404_NOT_FOUND if "no encontrado" in str(res.get("error", "")) else status.HTTP_200_OK
+        return Response(res, status=status_code)
 
-    try:
-        num_int = int(numero)
-    except ValueError:
-        return Response(
-            {"error": "El número de equipo debe ser entero."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    return Response(res, status=status.HTTP_200_OK)
 
-    codigo_api = f"{prefijo}-{str(num_int).zfill(4)}"
-    base_url = getattr(settings, "HOROMETROS_API_BASE_URL", "http://192.168.38.14:8009/vehiculos")
-    timeout = getattr(settings, "HOROMETROS_API_TIMEOUT", 5)
-    url = f"{base_url}/{codigo_api}/horometros"
-
-    try:
-        resp = req.get(url, timeout=timeout)
-
-        if resp.status_code == 404:
-            return Response(
-                {
-                    "error": f"Equipo {codigo_api} no encontrado en la API de horómetros.",
-                    "disponible": False,
-                    "codigo_externo": codigo_api,
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        resp.raise_for_status()
-        data = resp.json()
-
-        return Response({
-            "codigo_externo": codigo_api,
-            "horometro": data.get("horometro"),
-            "fecha": data.get("fecha"),
-            "disponible": True,
-        })
-
-    except req.exceptions.ConnectionError:
-        return Response(
-            {"error": "API de horómetros no disponible. Verifica la conexión de red.", "disponible": False},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
-    except req.exceptions.Timeout:
-        return Response(
-            {"error": "Tiempo de espera agotado al consultar la API de horómetros.", "disponible": False},
-            status=status.HTTP_504_GATEWAY_TIMEOUT,
-        )
-    except Exception as e:
-        return Response(
-            {"error": f"Error inesperado: {str(e)}", "disponible": False},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )

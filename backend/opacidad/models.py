@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 
 from equipos.models import Equipo
 from core.models import Usuario
@@ -30,9 +31,23 @@ class Opacimetro(models.Model):
 
     def vigente_al(self, fecha):
         """True si el control periodico estaba vigente en la fecha indicada."""
-        if not fecha:
+        venc = self.vencimiento_control
+        if not fecha or not venc:
             return False
-        return fecha <= self.vencimiento_control
+        # Defensa: si el valor llega como string (ej. desde una importacion JSON),
+        # se convierte a date antes de comparar.
+        from datetime import date
+        if isinstance(venc, str):
+            try:
+                venc = date.fromisoformat(venc)
+            except ValueError:
+                return False
+        if isinstance(fecha, str):
+            try:
+                fecha = date.fromisoformat(fecha)
+            except ValueError:
+                return False
+        return fecha <= venc
 
     @property
     def vigente_hoy(self):
@@ -88,10 +103,10 @@ class MedicionOpacidad(models.Model):
     )
     origen = models.CharField(max_length=10, choices=Origen.choices, default=Origen.PDF)
     campos_manuales = models.JSONField(
-        default=list, blank=True,
+        default=list, blank=True, encoder=DjangoJSONEncoder,
         help_text="Campos marcados con # en el informe (digitados, no medidos por el instrumento)"
     )
-    advertencias = models.JSONField(default=list, blank=True)
+    advertencias = models.JSONField(default=list, blank=True, encoder=DjangoJSONEncoder)
     operador = models.CharField(max_length=80, blank=True)
     observaciones = models.TextField(blank=True)
 
@@ -247,8 +262,8 @@ class ImportacionOpacidad(models.Model):
     sha256 = models.CharField(max_length=64, db_index=True)
     nombre_original = models.CharField(max_length=255, blank=True)
 
-    datos_extraidos = models.JSONField(default=dict)
-    advertencias = models.JSONField(default=list)
+    datos_extraidos = models.JSONField(default=dict, encoder=DjangoJSONEncoder)
+    advertencias = models.JSONField(default=list, encoder=DjangoJSONEncoder)
     equipo_sugerido = models.ForeignKey(
         Equipo, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="importaciones_opacidad"

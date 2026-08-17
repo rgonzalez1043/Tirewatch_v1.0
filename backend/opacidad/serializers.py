@@ -54,14 +54,19 @@ class MedicionOpacidadSerializer(serializers.ModelSerializer):
 class MedicionOpacidadCreateSerializer(serializers.ModelSerializer):
     """Alta manual (medicion en terreno, sin PDF)."""
     aceleraciones = AceleracionSerializer(many=True, required=False)
+    tipo_id = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    numero = serializers.IntegerField(required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = MedicionOpacidad
         fields = [
-            "equipo", "fecha", "hora", "horometro_motor",
+            "equipo", "tipo_id", "numero", "fecha", "hora", "horometro_motor",
             "k_medio", "k_limite", "temp_aceite", "rpm_ralenti", "rpm_maximo",
             "opacimetro", "origen", "operador", "observaciones", "aceleraciones",
         ]
+        extra_kwargs = {
+            "equipo": {"required": False, "allow_null": True},
+        }
 
     def validate_k_medio(self, v):
         if v < 0 or v > 20:
@@ -73,6 +78,27 @@ class MedicionOpacidadCreateSerializer(serializers.ModelSerializer):
             MedicionOpacidad.Origen.MANUAL, MedicionOpacidad.Origen.HISTORICO
         ):
             attrs["origen"] = MedicionOpacidad.Origen.MANUAL
+
+        if not attrs.get("equipo"):
+            tipo_id = attrs.pop("tipo_id", None)
+            numero = attrs.pop("numero", None)
+            if not tipo_id or not numero:
+                raise serializers.ValidationError({"equipo": "Debe especificar un equipo o indicar tipo_id y numero."})
+            from equipos.models import TipoEquipo
+            try:
+                tipo_obj = TipoEquipo.objects.get(id=tipo_id)
+            except TipoEquipo.DoesNotExist:
+                raise serializers.ValidationError({"tipo_id": "Tipo de equipo no válido."})
+            equipo_obj, _ = Equipo.objects.get_or_create(
+                tipo=tipo_obj,
+                numero=numero,
+                defaults={"nombre": f"{tipo_obj.nombre} {numero}"},
+            )
+            attrs["equipo"] = equipo_obj
+        else:
+            attrs.pop("tipo_id", None)
+            attrs.pop("numero", None)
+
         return attrs
 
     def create(self, validated):
@@ -116,7 +142,9 @@ class ConfirmarImportacionSerializer(serializers.Serializer):
     Confirmacion humana de una importacion. El usuario puede corregir
     cualquier campo antes de que se cree la medicion definitiva.
     """
-    equipo = serializers.PrimaryKeyRelatedField(queryset=Equipo.objects.all())
+    equipo = serializers.PrimaryKeyRelatedField(queryset=Equipo.objects.all(), required=False, allow_null=True)
+    tipo_id = serializers.IntegerField(required=False, allow_null=True)
+    numero = serializers.IntegerField(required=False, allow_null=True)
     fecha = serializers.DateField()
     k_medio = serializers.FloatField()
     k_limite = serializers.FloatField()

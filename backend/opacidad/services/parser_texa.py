@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover
 
 RE_FECHA_TEST = re.compile(r"Fecha del Test\s+(\d{2}/\d{2}/\d{4})", re.I)
 RE_HORA_TEST = re.compile(r"Hora del test\s+(\d{1,2}:\d{2})", re.I)
-RE_MATRICULA = re.compile(r"Matricula\s+([^\s]+)", re.I)
+RE_MATRICULA = re.compile(r"Matricula\s+([^\r\n]+)", re.I)
 RE_VIN = re.compile(r"VIN\s+([^\n]+)", re.I)
 RE_FABRICANTE = re.compile(r"Fabricante\s+([^\n]+)", re.I)
 RE_MODELO = re.compile(r"Modelo\s+([^\n]+)", re.I)
@@ -101,20 +101,57 @@ def extraer(fuente):
     d["hora"] = m.group(1) if m else None
 
     m = RE_MATRICULA.search(texto)
-    d["matricula"] = m.group(1).strip() if m else None
+    raw_mat = m.group(1).strip() if m else None
+    d["matricula_raw"] = raw_mat
+    d["matricula"] = None
+    d["tipo_pista"] = ""
+
+    if raw_mat:
+        # Extraer dígitos para el número
+        digits = re.findall(r"\d+", raw_mat)
+        if digits:
+            d["matricula"] = str(int(digits[-1]))  # Limpiar ceros a la izquierda, ej: '0070' -> '70'
+        else:
+            d["matricula"] = raw_mat
+
+        # Detectar pista de tipo desde la matrícula (ej. 'PORTA 70', 'TRA-2178')
+        up_mat = raw_mat.upper()
+        if any(k in up_mat for k in ("PORTA", "POR", "GPCO", "REACH")):
+            d["tipo_pista"] = "GPCO"
+        elif any(k in up_mat for k in ("TRACTO", "TRA", "TETR", "TERBERG")):
+            d["tipo_pista"] = "TETR"
+        elif any(k in up_mat for k in ("CHASIS", "CHA")):
+            d["tipo_pista"] = "CHA"
+
     if not d["matricula"]:
         w.append("No se pudo leer la matricula del equipo")
 
     m = RE_VIN.search(texto)
     d["vin"] = m.group(1).strip() if m else ""
-    if d["vin"] and not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", d["vin"]):
-        w.append(f"El campo VIN no contiene un VIN valido ('{d['vin']}')")
+    if d["vin"]:
+        up_vin = d["vin"].upper()
+        if not d["tipo_pista"]:
+            if any(k in up_vin for k in ("TRACTO", "TRA", "TETR", "TERBERG")):
+                d["tipo_pista"] = "TETR"
+            elif any(k in up_vin for k in ("PORTA", "POR", "GPCO", "REACH")):
+                d["tipo_pista"] = "GPCO"
+            elif any(k in up_vin for k in ("CHASIS", "CHA")):
+                d["tipo_pista"] = "CHA"
+        if not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", d["vin"]):
+            w.append(f"El campo VIN no contiene un VIN valido ('{d['vin']}')")
 
     # Fabricante/Modelo aparecen 2 veces (vehiculo e instrumento): tomar el primero
     m = RE_FABRICANTE.search(texto)
     d["fabricante"] = m.group(1).strip() if m else ""
     m = RE_MODELO.search(texto)
     d["modelo"] = m.group(1).strip() if m else ""
+
+    if not d["tipo_pista"]:
+        fab_mod = f"{d['fabricante']} {d['modelo']}".upper()
+        if any(k in fab_mod for k in ("TERBERG", "YT220", "OTTAWA", "MAFI")):
+            d["tipo_pista"] = "TETR"
+        elif any(k in fab_mod for k in ("KALMAR", "KONECRANES", "FANTUZZI", "SMV", "DRG")):
+            d["tipo_pista"] = "GPCO"
 
     # --- Limites ---
     m = RE_K_LIMITE.search(texto)
