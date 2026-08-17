@@ -1,4 +1,5 @@
 {% extends "web/base.html" %}
+{% load l10n %}
 {% block title %}Opacidad — Dashboard{% endblock %}
 {% block content %}
 <div class="w-full max-w-7xl mx-auto space-y-6" x-data="opacidadDashboard()">
@@ -367,6 +368,7 @@
 
 {% block extra_head %}
 <script>
+{% localize off %}
 function opacidadDashboard() {
   return {
     proyecciones: [],
@@ -538,5 +540,6 @@ function opacidadDashboard() {
     }
   }
 }
+{% endlocalize %}
 </script>
 {% endblock %}
