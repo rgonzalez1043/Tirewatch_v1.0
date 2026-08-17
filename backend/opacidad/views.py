@@ -127,60 +127,83 @@ class ImportarPDFView(APIView):
     humana. Este PDF trae campos digitados a mano y mapeos corridos, asi que
     la confirmacion humana no es opcional.
 
-    POST /api/opacidad/importar/   (multipart: archivo)
+    Acepta UNO O VARIOS PDF en el campo 'archivo' (repetido N veces).
+    POST /api/opacidad/importar/   (multipart)
     """
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        archivo = request.FILES.get("archivo")
-        if not archivo:
-            return Response({"archivo": "Requerido."}, status=status.HTTP_400_BAD_REQUEST)
-
-        sha = parser_texa.sha256_archivo(archivo)
-
-        duplicado = MedicionOpacidad.objects.filter(sha256=sha, anulado=False).first()
-        if duplicado:
+        archivos = request.FILES.getlist("archivo") or request.FILES.getlist("archivos")
+        if not archivos:
             return Response(
-                {
+                {"archivo": "Requerido (uno o varios PDF)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        resultados = [self._procesar_uno(a, request) for a in archivos]
+        ok = sum(1 for r in resultados if r.get("ok"))
+        return Response(
+            {
+                "total": len(resultados),
+                "ok": ok,
+                "con_error": len(resultados) - ok,
+                "resultados": resultados,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    def _procesar_uno(self, archivo, request):
+        """Procesa un archivo. NUNCA lanza excepcion: siempre devuelve un dict."""
+        nombre = getattr(archivo, "name", "archivo.pdf")
+        try:
+            sha = parser_texa.sha256_archivo(archivo)
+
+            duplicado = MedicionOpacidad.objects.filter(sha256=sha, anulado=False).first()
+            if duplicado:
+                return {
+                    "archivo": nombre, "ok": False, "estado": "DUPLICADO",
                     "detail": "Este PDF ya fue cargado.",
                     "medicion_id": duplicado.id,
                     "equipo": duplicado.equipo.codigo_completo,
-                    "fecha": duplicado.fecha,
-                },
-                status=status.HTTP_409_CONFLICT,
-            )
+                    "fecha": str(duplicado.fecha),
+                }
 
-        try:
-            datos, advertencias = parser_texa.extraer(archivo)
+            try:
+                datos, advertencias = parser_texa.extraer(archivo)
+            except Exception as exc:
+                return {
+                    "archivo": nombre, "ok": False, "estado": "ERROR_LECTURA",
+                    "detail": f"No se pudo leer el PDF: {exc}",
+                }
+
+            equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias)
+
+            datos_json = {k: v for k, v in datos.items() if k != "texto_crudo"}
+            datos_json["fecha"] = str(datos_json.get("fecha") or "")
+            opac = datos_json.get("opacimetro") or {}
+            if opac.get("vencimiento_control"):
+                opac["vencimiento_control"] = str(opac["vencimiento_control"])
+                datos_json["opacimetro"] = opac
+
+            imp = ImportacionOpacidad.objects.create(
+                archivo=archivo,
+                sha256=sha,
+                nombre_original=nombre,
+                datos_extraidos=datos_json,
+                advertencias=advertencias,
+                equipo_sugerido=equipo,
+                matricula_detectada=datos.get("matricula") or "",
+                subido_por=request.user if request.user.is_authenticated else None,
+            )
+            return {
+                "archivo": nombre, "ok": True, "estado": "PENDIENTE",
+                "importacion": ImportacionOpacidadSerializer(imp).data,
+            }
         except Exception as exc:
-            return Response(
-                {"detail": f"No se pudo leer el PDF: {exc}"},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
-
-        equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias)
-
-        datos_json = {k: v for k, v in datos.items() if k != "texto_crudo"}
-        datos_json["fecha"] = str(datos_json.get("fecha") or "")
-        if datos_json.get("opacimetro", {}).get("vencimiento_control"):
-            datos_json["opacimetro"]["vencimiento_control"] = str(
-                datos_json["opacimetro"]["vencimiento_control"]
-            )
-
-        imp = ImportacionOpacidad.objects.create(
-            archivo=archivo,
-            sha256=sha,
-            nombre_original=archivo.name,
-            datos_extraidos=datos_json,
-            advertencias=advertencias,
-            equipo_sugerido=equipo,
-            matricula_detectada=datos.get("matricula") or "",
-            subido_por=request.user if request.user.is_authenticated else None,
-        )
-
-        return Response(
-            ImportacionOpacidadSerializer(imp).data, status=status.HTTP_201_CREATED
-        )
+            return {
+                "archivo": nombre, "ok": False, "estado": "ERROR",
+                "detail": f"Error procesando el archivo: {exc}",
+            }
 
     @staticmethod
     def _resolver_equipo(matricula, vin, advertencias):

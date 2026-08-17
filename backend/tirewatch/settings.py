@@ -184,8 +184,14 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # WhiteNoise: compresión y cache de estáticos en producción (sin requerir manifest estricto)
+# IMPORTANTE: al definir STORAGES hay que incluir SIEMPRE la clave "default"
+# (almacenamiento de archivos subidos / FileField). Si se omite, Django lanza
+# InvalidStorageError al guardar cualquier archivo (ej. los PDF de opacidad).
 if not DEBUG:
     STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },

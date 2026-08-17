@@ -181,94 +181,112 @@
       </div>
 
       <div class="p-6 space-y-4">
-        <!-- Paso 1: subir -->
-        <template x-if="!importacion">
-          <div class="space-y-3">
-            <label class="block border-2 border-dashed border-navy-600 rounded-lg p-8 text-center cursor-pointer hover:border-cyan-500 transition-colors">
-              <input type="file" accept="application/pdf" class="hidden" @change="subirPdf($event)" />
-              <div class="text-3xl mb-2">📄</div>
-              <p class="text-sm text-gray-300 font-semibold" x-text="subiendo ? 'Procesando informe...' : 'Selecciona el PDF del opacímetro'"></p>
-              <p class="text-[10px] text-gray-500 mt-1">Se extraen los datos y se revisan antes de guardar. No se crea nada aún.</p>
-            </label>
-            <div x-show="errorMsg" class="p-3 bg-red-900/40 border border-red-800 rounded-md text-red-400 text-sm" x-text="errorMsg"></div>
+        <!-- Zona de carga: uno o VARIOS PDF -->
+        <label class="block border-2 border-dashed border-navy-600 rounded-lg p-6 text-center cursor-pointer hover:border-cyan-500 transition-colors">
+          <input type="file" accept="application/pdf" multiple class="hidden" @change="subirPdfs($event)" />
+          <div class="text-3xl mb-2">📄</div>
+          <p class="text-sm text-gray-300 font-semibold" x-text="subiendo ? 'Procesando informe(s)...' : 'Selecciona uno o varios PDF del opacímetro'"></p>
+          <p class="text-[10px] text-gray-500 mt-1">Puedes elegir varios a la vez. Se extraen los datos de cada uno y se revisan antes de guardar.</p>
+        </label>
+        <div x-show="errorMsg" class="p-3 bg-red-900/40 border border-red-800 rounded-md text-red-400 text-sm" x-text="errorMsg"></div>
+
+        <!-- Resumen -->
+        <template x-if="resultados.length">
+          <div class="text-xs text-gray-400 flex items-center gap-3 flex-wrap">
+            <span x-text="resultados.length + ' archivo(s)'"></span>
+            <span class="text-green-400" x-text="'· ' + nPendientes + ' por confirmar'"></span>
+            <span class="text-blue-400" x-show="nGuardados" x-text="'· ' + nGuardados + ' guardado(s)'"></span>
+            <span class="text-orange-400" x-show="nProblemas" x-text="'· ' + nProblemas + ' con aviso'"></span>
           </div>
         </template>
 
-        <!-- Paso 2: revisar y confirmar -->
-        <template x-if="importacion">
-          <div class="space-y-4">
-            <!-- Advertencias -->
-            <template x-if="importacion.advertencias && importacion.advertencias.length">
-              <div class="bg-yellow-900/30 border border-yellow-800 rounded-lg p-3 space-y-1">
-                <p class="text-xs font-bold text-yellow-400 uppercase tracking-wider">⚠️ Advertencias del análisis</p>
-                <template x-for="a in importacion.advertencias" :key="a">
-                  <p class="text-xs text-yellow-500 flex gap-1.5"><span>•</span><span x-text="a"></span></p>
-                </template>
+        <!-- Lista de resultados -->
+        <div class="space-y-2 max-h-[26rem] overflow-y-auto">
+          <template x-for="(res, idx) in resultados" :key="idx">
+            <div class="border border-navy-700 rounded-lg p-3 bg-navy-900/40">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-mono text-gray-300 truncate" x-text="res.archivo"></span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap"
+                  :class="{
+                    'bg-green-900/40 text-green-400 border-green-800': res.ok && !res.hecho,
+                    'bg-blue-900/40 text-blue-400 border-blue-800': res.hecho,
+                    'bg-yellow-900/40 text-yellow-400 border-yellow-800': res.estado==='DUPLICADO',
+                    'bg-red-900/40 text-red-400 border-red-800': res.estado==='ERROR' || res.estado==='ERROR_LECTURA'
+                  }"
+                  x-text="res.hecho ? 'GUARDADO' : (res.estado==='PENDIENTE' ? 'POR CONFIRMAR' : res.estado)"></span>
               </div>
-            </template>
 
-            <!-- Equipo -->
-            <div class="grid grid-cols-3 gap-3">
-              <div class="space-y-1 col-span-3" x-show="importacion.equipo_sugerido">
-                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Equipo detectado</label>
-                <div class="w-full bg-navy-900 border border-green-800/50 rounded-md py-2 px-3 text-sm text-green-400 font-mono font-bold"
-                  x-text="importacion.equipo_sugerido_codigo"></div>
-              </div>
-              <template x-if="!importacion.equipo_sugerido">
-                <div class="col-span-3 grid grid-cols-3 gap-3">
-                  <div class="col-span-3 text-xs text-orange-400">No se detectó el equipo automáticamente (matrícula: <strong x-text="importacion.matricula_detectada || '—'"></strong>). Selecciónalo:</div>
-                  <div class="space-y-1">
-                    <label class="text-[10px] text-gray-500 uppercase">Tipo</label>
-                    <select x-model="conf.tipo_id" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500">
-                      <option value="">— Tipo —</option>
-                      <template x-for="t in tiposEquipo" :key="t.id"><option :value="t.id" x-text="t.codigo + ' — ' + t.nombre"></option></template>
-                    </select>
+              <!-- Error / duplicado -->
+              <template x-if="!res.ok">
+                <p class="text-[11px] text-gray-500 mt-1" x-text="res.detail"></p>
+              </template>
+
+              <!-- Pendiente: revisar y confirmar -->
+              <template x-if="res.ok && !res.hecho">
+                <div class="mt-2 space-y-2">
+                  <template x-if="res.importacion.advertencias && res.importacion.advertencias.length">
+                    <div class="text-[10px] text-yellow-500 space-y-0.5">
+                      <template x-for="a in res.importacion.advertencias" :key="a"><div x-text="'⚠ ' + a"></div></template>
+                    </div>
+                  </template>
+
+                  <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 items-end">
+                    <!-- equipo -->
+                    <template x-if="res.importacion.equipo_sugerido">
+                      <div class="col-span-2 sm:col-span-1">
+                        <div class="text-[9px] text-gray-500 uppercase">Equipo</div>
+                        <div class="text-xs font-mono text-green-400 font-bold py-1.5" x-text="res.importacion.equipo_sugerido_codigo"></div>
+                      </div>
+                    </template>
+                    <template x-if="!res.importacion.equipo_sugerido">
+                      <div class="col-span-2 sm:col-span-1 flex gap-1">
+                        <select x-model="res.conf.tipo_id" class="w-1/2 bg-navy-900 border border-orange-700 rounded py-1 px-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500">
+                          <option value="">Tipo</option>
+                          <template x-for="t in tiposEquipo" :key="t.id"><option :value="t.id" x-text="t.codigo"></option></template>
+                        </select>
+                        <input x-model="res.conf.numero" type="number" placeholder="N°" class="w-1/2 bg-navy-900 border border-orange-700 rounded py-1 px-1 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                      </div>
+                    </template>
+                    <div>
+                      <div class="text-[9px] text-gray-500 uppercase">Fecha</div>
+                      <input x-model="res.conf.fecha" type="date" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                    </div>
+                    <div>
+                      <div class="text-[9px] text-gray-500 uppercase">k medio</div>
+                      <input x-model="res.conf.k_medio" type="number" step="0.01" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                    </div>
+                    <div>
+                      <div class="text-[9px] text-gray-500 uppercase">k límite</div>
+                      <input x-model="res.conf.k_limite" type="number" step="0.01" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                    </div>
+                    <div>
+                      <div class="text-[9px] text-gray-500 uppercase">Horóm.</div>
+                      <input x-model="res.conf.horometro_motor" type="number" placeholder="opc" class="w-full bg-navy-900 border border-navy-600 rounded py-1 px-1.5 text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                    </div>
                   </div>
-                  <div class="space-y-1">
-                    <label class="text-[10px] text-gray-500 uppercase">N° Equipo</label>
-                    <input x-model="conf.numero" type="number" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="Ej: 2178" />
+
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-[10px] text-red-400" x-text="res.error || ''"></span>
+                    <button @click="confirmarUno(res)" :disabled="res.guardando"
+                      class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-white text-xs font-bold rounded transition-all disabled:opacity-50">
+                      <span x-text="res.guardando ? 'Guardando...' : 'Confirmar'"></span>
+                    </button>
                   </div>
                 </div>
               </template>
             </div>
+          </template>
+        </div>
 
-            <!-- Datos leídos (editables) -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div class="space-y-1">
-                <label class="text-[10px] text-gray-500 uppercase">Fecha</label>
-                <input x-model="conf.fecha" type="date" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-              </div>
-              <div class="space-y-1">
-                <label class="text-[10px] text-gray-500 uppercase">k medio (1/m)</label>
-                <input x-model="conf.k_medio" type="number" step="0.01" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-              </div>
-              <div class="space-y-1">
-                <label class="text-[10px] text-gray-500 uppercase">k límite (1/m)</label>
-                <input x-model="conf.k_limite" type="number" step="0.01" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-              </div>
-              <div class="space-y-1">
-                <label class="text-[10px] text-gray-500 uppercase">Horómetro</label>
-                <input x-model="conf.horometro_motor" type="number" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" placeholder="opcional" />
-              </div>
-            </div>
-            <div class="space-y-1">
-              <label class="text-[10px] text-gray-500 uppercase">Operador</label>
-              <input x-model="conf.operador" type="text" class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-            </div>
+        <div x-show="okMsg" class="p-3 bg-green-900/40 border border-green-800 rounded-md text-green-400 text-sm" x-text="okMsg"></div>
 
-            <div x-show="errorMsg" class="p-3 bg-red-900/40 border border-red-800 rounded-md text-red-400 text-sm" x-text="errorMsg"></div>
-            <div x-show="okMsg" class="p-3 bg-green-900/40 border border-green-800 rounded-md text-green-400 text-sm" x-text="okMsg"></div>
-
-            <div class="flex justify-between gap-3 pt-2">
-              <button @click="rechazarImportacion()" :disabled="guardando"
-                class="px-4 py-2 text-sm text-red-400 hover:text-red-300 bg-red-900/30 hover:bg-red-900/50 border border-red-800/50 rounded-lg transition-all disabled:opacity-50">
-                Rechazar
-              </button>
-              <button @click="confirmarImportacion()" :disabled="guardando"
-                class="flex items-center gap-2 px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
-                <span x-text="guardando ? 'Guardando...' : 'Confirmar y Guardar'"></span>
-              </button>
-            </div>
+        <!-- Confirmar todos -->
+        <template x-if="nConfirmables > 0">
+          <div class="flex justify-end gap-3 pt-2 border-t border-navy-700">
+            <button @click="confirmarTodos()" :disabled="guardando"
+              class="flex items-center gap-2 px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50">
+              <span x-text="guardando ? 'Guardando...' : ('Confirmar todos (' + nConfirmables + ')')"></span>
+            </button>
           </div>
         </template>
       </div>
@@ -381,8 +399,11 @@ function opacidadDashboard() {
     errorMsg: '',
     okMsg: '',
     tiposEquipo: [],
-    importacion: null,
-    conf: { tipo_id: '', numero: '', fecha: '', k_medio: '', k_limite: '', horometro_motor: '', operador: '' },
+    resultados: [],
+    get nPendientes() { return this.resultados.filter(r => r.ok && !r.hecho).length; },
+    get nGuardados() { return this.resultados.filter(r => r.hecho).length; },
+    get nProblemas() { return this.resultados.filter(r => !r.ok).length; },
+    get nConfirmables() { return this.resultados.filter(r => r.ok && !r.hecho && (r.importacion.equipo_sugerido || (r.conf && r.conf.tipo_id && r.conf.numero))).length; },
     man: { tipo_id: '', numero: '', fecha: new Date().toISOString().slice(0,10), k_medio: '', k_limite: {{ config.limite_opacidad_k_default }}, horometro_motor: '', operador: '', observaciones: '' },
 
     _token() { return sessionStorage.getItem('tw_token'); },
@@ -428,38 +449,6 @@ function opacidadDashboard() {
       finally { this.cargando = false; }
     },
 
-    // ---- PDF ----
-    abrirPdf() {
-      this.errorMsg = ''; this.okMsg = ''; this.importacion = null;
-      this.conf = { tipo_id: '', numero: '', fecha: '', k_medio: '', k_limite: '', horometro_motor: '', operador: '' };
-      this.modalPdf = true;
-    },
-
-    async subirPdf(ev) {
-      const file = ev.target.files[0];
-      if (!file) return;
-      this.subiendo = true; this.errorMsg = '';
-      try {
-        const fd = new FormData();
-        fd.append('archivo', file);
-        const r = await fetch('/api/opacidad/importar/', {
-          method: 'POST',
-          headers: { 'Authorization': 'Token ' + this._token(), 'X-CSRFToken': this._csrf() },
-          body: fd
-        });
-        const d = await r.json();
-        if (!r.ok) { this.errorMsg = d.detail || JSON.stringify(d); return; }
-        this.importacion = d;
-        const ex = d.datos_extraidos || {};
-        this.conf = {
-          tipo_id: '', numero: d.matricula_detectada || '',
-          fecha: ex.fecha || '', k_medio: ex.k_medio ?? '', k_limite: ex.k_limite ?? {{ config.limite_opacidad_k_default }},
-          horometro_motor: '', operador: ex.operador || ''
-        };
-      } catch(e) { this.errorMsg = 'Error de conexión: ' + e.message; }
-      finally { this.subiendo = false; ev.target.value = ''; }
-    },
-
     async _resolverEquipo(tipoId, numero) {
       const r = await fetch(`/api/equipos/?tipo=${tipoId}&numero=${numero}`, { headers: { 'Authorization': 'Token ' + this._token() } });
       const d = await r.json();
@@ -467,43 +456,86 @@ function opacidadDashboard() {
       return eq.length ? eq[0].id : null;
     },
 
-    async confirmarImportacion() {
-      this.guardando = true; this.errorMsg = ''; this.okMsg = '';
-      try {
-        let equipoId = this.importacion.equipo_sugerido;
-        if (!equipoId) {
-          if (!this.conf.tipo_id || !this.conf.numero) { this.errorMsg = 'Selecciona el tipo y número de equipo.'; this.guardando = false; return; }
-          equipoId = await this._resolverEquipo(this.conf.tipo_id, this.conf.numero);
-          if (!equipoId) { this.errorMsg = 'No se encontró ese equipo en el catálogo.'; this.guardando = false; return; }
-        }
-        const payload = {
-          equipo: equipoId, fecha: this.conf.fecha,
-          k_medio: parseFloat(this.conf.k_medio), k_limite: parseFloat(this.conf.k_limite),
-          horometro_motor: this.conf.horometro_motor ? parseInt(this.conf.horometro_motor) : null,
-          operador: this.conf.operador || ''
-        };
-        const r = await fetch(`/api/opacidad/importaciones/${this.importacion.id}/confirmar/`, {
-          method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
-        });
-        if (!r.ok) { const err = await r.json(); this.errorMsg = JSON.stringify(err); }
-        else {
-          this.okMsg = '✅ Medición confirmada y guardada.';
-          await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
-          setTimeout(() => { this.modalPdf = false; this.importacion = null; }, 1500);
-        }
-      } catch(e) { this.errorMsg = 'Error de conexión: ' + e.message; }
-      finally { this.guardando = false; }
+    // ---- PDF (uno o varios) ----
+    abrirPdf() {
+      this.errorMsg = ''; this.okMsg = ''; this.resultados = [];
+      this.modalPdf = true;
     },
 
-    async rechazarImportacion() {
-      this.guardando = true;
+    async subirPdfs(ev) {
+      const files = Array.from(ev.target.files || []);
+      if (!files.length) return;
+      this.subiendo = true; this.errorMsg = '';
       try {
-        await fetch(`/api/opacidad/importaciones/${this.importacion.id}/rechazar/`, {
-          method: 'POST', headers: this._hdrs(), body: JSON.stringify({ motivo: 'Rechazado en revisión' })
+        const fd = new FormData();
+        files.forEach(f => fd.append('archivo', f));
+        const r = await fetch('/api/opacidad/importar/', {
+          method: 'POST',
+          headers: { 'Authorization': 'Token ' + this._token(), 'X-CSRFToken': this._csrf() },
+          body: fd
         });
-        this.modalPdf = false; this.importacion = null;
-      } catch(e) { console.error(e); }
-      finally { this.guardando = false; }
+        const d = await r.json();
+        if (!r.ok) { this.errorMsg = d.detail || JSON.stringify(d); return; }
+        const nuevos = (d.resultados || []).map(res => {
+          if (res.ok && res.importacion) {
+            const ex = res.importacion.datos_extraidos || {};
+            res.conf = {
+              tipo_id: '', numero: res.importacion.matricula_detectada || '',
+              fecha: ex.fecha || '', k_medio: ex.k_medio ?? '',
+              k_limite: (ex.k_limite ?? {{ config.limite_opacidad_k_default }}),
+              horometro_motor: '', operador: ex.operador || ''
+            };
+          }
+          res.hecho = false; res.guardando = false; res.error = '';
+          return res;
+        });
+        this.resultados = this.resultados.concat(nuevos);
+      } catch(e) { this.errorMsg = 'Error de conexión: ' + e.message; }
+      finally { this.subiendo = false; ev.target.value = ''; }
+    },
+
+    async confirmarUno(res, refrescar = true) {
+      res.guardando = true; res.error = '';
+      try {
+        let equipoId = res.importacion.equipo_sugerido;
+        if (!equipoId) {
+          if (!res.conf.tipo_id || !res.conf.numero) { res.error = 'Falta tipo/número de equipo.'; return false; }
+          equipoId = await this._resolverEquipo(res.conf.tipo_id, res.conf.numero);
+          if (!equipoId) { res.error = 'Equipo no encontrado en el catálogo.'; return false; }
+        }
+        const payload = {
+          equipo: equipoId, fecha: res.conf.fecha,
+          k_medio: parseFloat(res.conf.k_medio), k_limite: parseFloat(res.conf.k_limite),
+          horometro_motor: res.conf.horometro_motor ? parseInt(res.conf.horometro_motor) : null,
+          operador: res.conf.operador || ''
+        };
+        const r = await fetch(`/api/opacidad/importaciones/${res.importacion.id}/confirmar/`, {
+          method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
+        });
+        if (!r.ok) { const err = await r.json(); res.error = err.detail || JSON.stringify(err); return false; }
+        res.hecho = true;
+        if (refrescar) {
+          this.okMsg = '✅ Medición guardada.';
+          await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
+        }
+        return true;
+      } catch(e) { res.error = 'Error: ' + e.message; return false; }
+      finally { res.guardando = false; }
+    },
+
+    async confirmarTodos() {
+      this.guardando = true; this.okMsg = '';
+      let n = 0;
+      for (const res of this.resultados) {
+        if (res.ok && !res.hecho) {
+          if (await this.confirmarUno(res, false)) n++;
+        }
+      }
+      if (n) {
+        this.okMsg = `✅ ${n} medición(es) guardada(s).`;
+        await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
+      }
+      this.guardando = false;
     },
 
     // ---- Manual ----
