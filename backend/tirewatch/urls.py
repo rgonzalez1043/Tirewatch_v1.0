@@ -13,6 +13,7 @@ urlpatterns = [
     path("api/turbos/", include("turbos.urls")),
     path("api/frenos/", include("frenos.urls")),
     path("api/cadenas/", include("cadenas.urls")),
+    path("api/opacidad/", include("opacidad.urls")),
     # Frontend web
     path("", include("web.urls")),
 ]

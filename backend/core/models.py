@@ -135,6 +135,26 @@ class ConfiguracionSistema(models.Model):
         help_text="Elongación (%) desde la cual generar alerta ATENCIÓN en cadenas (recomendación industria: 1.5%)"
     )
 
+    # Módulo Opacidad (emisiones diésel — control semestral)
+    # Ref: límite k declarado en el informe del opacímetro. El default solo aplica
+    # cuando el PDF no lo trae; nunca se asume por sobre el valor del informe.
+    limite_opacidad_k_default = models.FloatField(
+        default=3.0,
+        help_text="Coeficiente de absorción máximo en 1/m cuando el informe no lo declara"
+    )
+    umbral_alerta_opacidad_pct = models.FloatField(
+        default=0.70,
+        help_text="Fracción del límite (0.0 a 1.0) desde la cual generar alerta ATENCIÓN"
+    )
+    umbral_critico_opacidad_pct = models.FloatField(
+        default=0.85,
+        help_text="Fracción del límite (0.0 a 1.0) desde la cual generar alerta CRÍTICO"
+    )
+    meses_periodicidad_opacidad = models.IntegerField(
+        default=6,
+        help_text="Periodicidad del control de opacidad en meses (semestral)"
+    )
+
     class Meta:
         verbose_name = "Configuración del Sistema"
         verbose_name_plural = "Configuración del Sistema"

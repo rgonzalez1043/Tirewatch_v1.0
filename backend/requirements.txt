@@ -16,6 +16,9 @@ pandas>=2.1
 openpyxl>=3.1
 numpy>=1.26
 
+# Lectura de informes PDF de opacidad (opacímetro TEXA OPABOX)
+pdfplumber>=0.11
+
 # Utilidades
 python-dotenv>=1.0
 requests>=2.31

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "turbos.apps.TurbosConfig",
     "frenos.apps.FrenosConfig",
     "cadenas.apps.CadenasConfig",
+    "opacidad.apps.OpacidadConfig",
     "web.apps.WebConfig",
 ]
 
@@ -250,7 +251,8 @@ JAZZMIN_SETTINGS = {
 
     # Orden de aplicaciones en la barra lateral
     "order_with_respect_to": [
-        "equipos", "neumaticos", "turbos", "frenos", "cadenas", "core", "auth", "authtoken",
+        "equipos", "neumaticos", "turbos", "frenos", "cadenas", "opacidad",
+        "core", "auth", "authtoken",
     ],
 
     # Íconos (FontAwesome, incluidos con Jazzmin)
@@ -276,6 +278,10 @@ JAZZMIN_SETTINGS = {
         "frenos.proyeccionfreno": "fas fa-chart-line",
         "cadenas.medicioncadena": "fas fa-link",
         "cadenas.proyeccioncadena": "fas fa-chart-line",
+        "opacidad.opacimetro": "fas fa-tachometer-alt",
+        "opacidad.medicionopacidad": "fas fa-smog",
+        "opacidad.proyeccionopacidad": "fas fa-chart-line",
+        "opacidad.importacionopacidad": "fas fa-file-import",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",

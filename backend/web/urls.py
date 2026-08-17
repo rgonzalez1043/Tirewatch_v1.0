@@ -9,6 +9,7 @@ urlpatterns = [
     path("turbos/", views.turbos_dashboard, name="turbos_dashboard"),
     path("frenos/", views.frenos_dashboard, name="frenos_dashboard"),
     path("cadenas/", views.cadenas_dashboard, name="cadenas_dashboard"),
+    path("opacidad/", views.opacidad_dashboard, name="opacidad_dashboard"),
     path("app-movil/", views.app_movil, name="app_movil"),
     # Configuración y Marcas
     path("configuracion/", views.configuracion_sistema, name="configuracion_sistema"),

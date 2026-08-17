@@ -13,6 +13,7 @@ from equipos.models import MarcaComponente
 from turbos.models import ProyeccionTurbo
 from frenos.models import ProyeccionFreno
 from cadenas.models import ProyeccionCadena
+from opacidad.models import ProyeccionOpacidad
 from neumaticos.models import Proyeccion as ProyeccionNeumaticos
 from .forms import ConfiguracionSistemaForm, UsuarioCreationForm, UsuarioEditForm, MarcaComponenteForm
 
@@ -76,6 +77,7 @@ def modulos(request):
         {"icono": "⚙️", "titulo": "Turbos", "descripcion": "Juego Radial/Axial y proyección de overhaul", "url": "/turbos/", "activo": True},
         {"icono": "🛑", "titulo": "Frenos", "descripcion": "Desgaste de pastillas — Kalmar T2, Terberg, Konecranes", "url": "/frenos/", "activo": True},
         {"icono": "⛓️", "titulo": "Cadenas", "descripcion": "Elongación de cadenas de spreader — Taylor", "url": "/cadenas/", "activo": True},
+        {"icono": "💨", "titulo": "Opacidad Diésel", "descripcion": "Control de emisiones (k) · semestral", "url": "/opacidad/", "activo": True},
         {"icono": "📱", "titulo": "App Móvil (Android)", "descripcion": "App Flutter operativa · registro en terreno", "url": "/app-movil/", "activo": True},
     ]
     modulos_futuros = [
@@ -304,6 +306,25 @@ def cadenas_dashboard(request):
         "config": config,
     }
     return render(request, "web/cadenas_dashboard.html", context)
+
+
+@login_required
+def opacidad_dashboard(request):
+    """Dashboard de Opacidad Diésel. Datos cargados vía fetch JS al endpoint /api/opacidad/."""
+    config = ConfiguracionSistema.load()
+    proyecciones = ProyeccionOpacidad.objects.select_related("equipo").all()
+    stats = proyecciones.aggregate(
+        total=Count("id"),
+        criticos=Count("id", filter=Q(estado="CRITICO")),
+        atencion=Count("id", filter=Q(estado="ATENCION")),
+        ok=Count("id", filter=Q(estado="OK")),
+    )
+    context = {
+        "proyecciones": proyecciones,
+        "stats": stats,
+        "config": config,
+    }
+    return render(request, "web/opacidad_dashboard.html", context)
 
 
 @login_required
