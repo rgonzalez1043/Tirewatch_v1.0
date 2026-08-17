@@ -578,8 +578,15 @@ function opacidadDashboard() {
           method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
         });
         if (!r.ok) {
-          const err = await r.json();
-          res.error = err.detail || JSON.stringify(err);
+          let msg = 'Error del servidor (' + r.status + ')';
+          try {
+            const err = await r.json();
+            msg = err.detail || err.error || JSON.stringify(err);
+          } catch (_) {
+            const txt = await r.text();
+            msg = txt.slice(0, 120) || msg;
+          }
+          res.error = msg;
           return false;
         }
         res.hecho = true;
@@ -663,8 +670,17 @@ function opacidadDashboard() {
           method: 'POST', headers: this._hdrs(), body: JSON.stringify(payload)
         });
         if (!r.ok) {
-          const err = await r.json();
-          this.errorMsg = err.detail || JSON.stringify(err);
+          let msg = 'Error del servidor (' + r.status + ')';
+          try {
+            const err = await r.json();
+            msg = err.detail || err.error || JSON.stringify(err);
+          } catch (_) {
+            const txt = await r.text();
+            msg = txt.slice(0, 120) || msg;
+          }
+          this.errorMsg = msg;
+          this.guardando = false;
+          return;
         } else {
           this.okMsg = '✅ Medición registrada. Proyección actualizada.';
           await Promise.all([this.cargarProyecciones(), this.cargarResumen()]);
