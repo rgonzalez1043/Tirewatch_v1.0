@@ -232,9 +232,19 @@
         <h3 class="flex items-center gap-2 text-md font-bold text-cyan-400 mb-5 pb-2 border-b border-navy-700/50">
           <span>💨</span> Módulo Opacidad Diésel
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="space-y-1.5">
-            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Límite k por Defecto (1/m)</label>
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">🚜 Límite k Tractos (1/m)</label>
+            {{ form.limite_opacidad_k_tracto }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_opacidad_k_tracto.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">🏗️ Límite k Portas (1/m)</label>
+            {{ form.limite_opacidad_k_porta }}
+            <p class="text-[10px] text-gray-500">{{ form.limite_opacidad_k_porta.help_text }}</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Límite k por Defecto / Otros (1/m)</label>
             {{ form.limite_opacidad_k_default }}
             <p class="text-[10px] text-gray-500">{{ form.limite_opacidad_k_default.help_text }}</p>
           </div>

@@ -52,7 +52,9 @@ class AnalizadorOpacidad:
             return proy
 
         actual = mediciones[-1]
-        limite = actual.k_limite or 3.0
+        tipo_cod = equipo.tipo.codigo if equipo and equipo.tipo else ""
+        limite_cfg = cfg.get_limite_opacidad(tipo_cod) if hasattr(cfg, "get_limite_opacidad") else (getattr(cfg, "limite_opacidad_k_default", 3.0) or 3.0)
+        limite = limite_cfg if (not actual.k_limite or actual.k_limite < 2.0) else actual.k_limite
 
         proy.n_mediciones = len(mediciones)
         proy.k_actual = actual.k_medio
@@ -137,6 +139,18 @@ class AnalizadorOpacidad:
     @classmethod
     def analizar_todos(cls):
         """Recalcula todos los equipos que tengan al menos una medicion."""
+        cfg = cls._config()
+        limite_cfg = getattr(cfg, "limite_opacidad_k_default", 3.0) or 3.0
+
+        # Corregir mediciones donde se guardó 1.50 por calibración errónea en el opacímetro
+        for m in MedicionOpacidad.objects.filter(anulado=False, k_limite__lt=2.0).select_related("equipo", "equipo__tipo"):
+            tipo_cod = m.equipo.tipo.codigo if m.equipo and m.equipo.tipo else ""
+            lim_corregido = cfg.get_limite_opacidad(tipo_cod) if hasattr(cfg, "get_limite_opacidad") else (getattr(cfg, "limite_opacidad_k_default", 3.0) or 3.0)
+            m.k_limite = lim_corregido
+            if m.k_medio is not None:
+                m.aprobado = (m.k_medio <= lim_corregido)
+            m.save(update_fields=["k_limite", "aprobado"])
+
         ids = (
             MedicionOpacidad.objects.filter(anulado=False)
             .values_list("equipo_id", flat=True).distinct()

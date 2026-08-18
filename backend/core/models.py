@@ -136,11 +136,17 @@ class ConfiguracionSistema(models.Model):
     )
 
     # Módulo Opacidad (emisiones diésel — control semestral)
-    # Ref: límite k declarado en el informe del opacímetro. El default solo aplica
-    # cuando el PDF no lo trae; nunca se asume por sobre el valor del informe.
+    limite_opacidad_k_tracto = models.FloatField(
+        default=3.0,
+        help_text="Coeficiente de absorción máximo k (1/m) para Terminal Tractos (TETR)"
+    )
+    limite_opacidad_k_porta = models.FloatField(
+        default=3.0,
+        help_text="Coeficiente de absorción máximo k (1/m) para Portacontenedores / Reach Stackers (GPCO)"
+    )
     limite_opacidad_k_default = models.FloatField(
         default=3.0,
-        help_text="Coeficiente de absorción máximo en 1/m cuando el informe no lo declara"
+        help_text="Coeficiente de absorción máximo k (1/m) por defecto para otros equipos o chasis"
     )
     umbral_alerta_opacidad_pct = models.FloatField(
         default=0.70,
@@ -154,6 +160,14 @@ class ConfiguracionSistema(models.Model):
         default=6,
         help_text="Periodicidad del control de opacidad en meses (semestral)"
     )
+
+    def get_limite_opacidad(self, tipo_codigo=""):
+        t = (tipo_codigo or "").upper()
+        if "TETR" in t or "TRA" in t:
+            return self.limite_opacidad_k_tracto or 3.0
+        if "GPCO" in t or "POR" in t or "REACH" in t:
+            return self.limite_opacidad_k_porta or 3.0
+        return self.limite_opacidad_k_default or 3.0
 
     class Meta:
         verbose_name = "Configuración del Sistema"

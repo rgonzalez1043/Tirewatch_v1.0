@@ -187,8 +187,23 @@ class ImportarPDFView(APIView):
             tipo_pista = datos.get("tipo_pista", "")
             equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias, tipo_pista=tipo_pista)
 
+            # Límite configurable según tipo de equipo (Tractos vs Portas)
+            from core.models import ConfiguracionSistema
+            cfg = ConfiguracionSistema.load()
+            tipo_cod = equipo.tipo.codigo if equipo else (tipo_pista or "")
+            limite_cfg = cfg.get_limite_opacidad(tipo_cod)
+            k_pdf = datos.get("k_limite")
+            if k_pdf is None or k_pdf < 2.0:
+                if k_pdf is not None:
+                    tipo_nombre = "Tractos" if "TETR" in tipo_cod.upper() else "Portas" if "GPCO" in tipo_cod.upper() else "Flota"
+                    advertencias.append(
+                        f"Límite del informe ({k_pdf:.2f} 1/m) ajustado a {limite_cfg:.2f} 1/m según configuración para {tipo_nombre}."
+                    )
+                datos["k_limite"] = limite_cfg
+
             datos_json = {k: v for k, v in datos.items() if k != "texto_crudo"}
             datos_json["fecha"] = str(datos_json.get("fecha") or "")
+            datos_json["k_limite"] = limite_cfg
             opac = datos_json.get("opacimetro") or {}
             if opac.get("vencimiento_control"):
                 opac["vencimiento_control"] = str(opac["vencimiento_control"])

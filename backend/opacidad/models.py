@@ -142,7 +142,15 @@ class MedicionOpacidad(models.Model):
 
     @staticmethod
     def calcular_periodo(fecha):
-        return f"{fecha.year}-S{1 if fecha.month <= 6 else 2}"
+        if isinstance(fecha, str):
+            from datetime import date
+            try:
+                fecha = date.fromisoformat(fecha)
+            except ValueError:
+                return ""
+        if hasattr(fecha, "year"):
+            return f"{fecha.year}-S{1 if fecha.month <= 6 else 2}"
+        return ""
 
     @property
     def pct_limite(self):

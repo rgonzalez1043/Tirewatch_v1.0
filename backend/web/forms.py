@@ -36,6 +36,8 @@ class ConfiguracionSistemaForm(forms.ModelForm):
             "prof_fabrica_freno_mm":           _ni(_INPUT_RED),
             "limite_elongacion_cadena_pct":    _ni(_INPUT_YELLOW),
             "umbral_alerta_cadena_pct":        _ni(_INPUT_YELLOW),
+            "limite_opacidad_k_tracto":        _ni(_INPUT, "0.1"),
+            "limite_opacidad_k_porta":         _ni(_INPUT, "0.1"),
             "limite_opacidad_k_default":       _ni(_INPUT, "0.1"),
             "umbral_alerta_opacidad_pct":      _ni(_INPUT, "0.01"),
             "umbral_critico_opacidad_pct":     _ni(_INPUT, "0.01"),

@@ -14,7 +14,8 @@
       <p class="text-xs text-gray-500 mt-1">
         Control de emisiones (coeficiente <strong class="text-cyan-400">k</strong> en 1/m) · Control semestral
         <br>
-        Límite por defecto: <strong class="text-cyan-400">{{ config.limite_opacidad_k_default }} 1/m</strong>
+        Límite Tractos: <strong class="text-blue-400">{{ config.limite_opacidad_k_tracto|default:3.0 }} 1/m</strong>
+        · Portas: <strong class="text-purple-400">{{ config.limite_opacidad_k_porta|default:3.0 }} 1/m</strong>
         · Alerta: <strong class="text-yellow-400">{{ config.umbral_alerta_opacidad_pct }}</strong>
         · Crítico: <strong class="text-red-400">{{ config.umbral_critico_opacidad_pct }}</strong>
         · Periodicidad: <strong class="text-cyan-400">{{ config.meses_periodicidad_opacidad }} meses</strong>
@@ -525,7 +526,7 @@
         <div class="grid grid-cols-3 gap-3">
           <div class="space-y-1">
             <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Tipo Equipo</label>
-            <select x-model="man.tipo_id" required
+            <select x-model="man.tipo_id" @change="man.k_limite = getLimiteSugerido(man.tipo_id)" required
               class="w-full bg-navy-900 border border-navy-600 rounded-md py-2 px-3 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-cyan-500">
               <option value="">— Tipo —</option>
               <template x-for="t in tiposEquipo" :key="t.id"><option :value="t.id" x-text="t.codigo + ' — ' + t.nombre"></option></template>
@@ -818,6 +819,20 @@ function opacidadDashboard() {
       return eq.length ? eq[0].id : null;
     },
 
+    getLimiteSugerido(tipoIdOrCode) {
+      let cod = '';
+      if (typeof tipoIdOrCode === 'number' || (typeof tipoIdOrCode === 'string' && /^\d+$/.test(tipoIdOrCode))) {
+        const t = this.tiposEquipo.find(x => x.id == tipoIdOrCode);
+        cod = t ? t.codigo : '';
+      } else {
+        cod = String(tipoIdOrCode || '');
+      }
+      cod = cod.toUpperCase();
+      if (cod.includes('TETR') || cod.includes('TRA')) return {{ config.limite_opacidad_k_tracto|default:3.0 }};
+      if (cod.includes('GPCO') || cod.includes('POR') || cod.includes('REACH')) return {{ config.limite_opacidad_k_porta|default:3.0 }};
+      return {{ config.limite_opacidad_k_default|default:3.0 }};
+    },
+
     // ---- PDF (uno o varios) ----
     abrirPdf() {
       this.errorMsg = ''; this.okMsg = ''; this.resultados = [];
@@ -846,12 +861,13 @@ function opacidadDashboard() {
               const tObj = this.tiposEquipo.find(t => t.codigo === ex.tipo_pista);
               if (tObj) tipoSugeridoId = tObj.id;
             }
+            const limSugerido = this.getLimiteSugerido(tipoSugeridoId || ex.tipo_pista);
             res.conf = {
               tipo_id: tipoSugeridoId,
               numero: res.importacion.matricula_detectada || ex.matricula || '',
               fecha: ex.fecha || '',
               k_medio: ex.k_medio ?? '',
-              k_limite: (ex.k_limite ?? {{ config.limite_opacidad_k_default }}),
+              k_limite: (ex.k_limite && ex.k_limite >= 2.0 ? ex.k_limite : limSugerido),
               horometro_motor: ex.horometro_motor || '',
               operador: ex.operador || ''
             };
@@ -969,10 +985,9 @@ function opacidadDashboard() {
       this.guardando = false;
     },
 
-    // ---- Manual ----
     abrirManual() {
       this.errorMsg = ''; this.okMsg = '';
-      this.man = { tipo_id: '', numero: '', fecha: new Date().toISOString().slice(0,10), k_medio: '', k_limite: {{ config.limite_opacidad_k_default }}, horometro_motor: '', operador: '', observaciones: '' };
+      this.man = { tipo_id: '', numero: '', fecha: new Date().toISOString().slice(0,10), k_medio: '', k_limite: {{ config.limite_opacidad_k_tracto|default:3.0 }}, horometro_motor: '', operador: '', observaciones: '' };
       this.modalManual = true;
     },
 
