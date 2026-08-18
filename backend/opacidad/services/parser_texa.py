@@ -110,11 +110,17 @@ def extraer(fuente):
         # Extraer dígitos para el número
         digits = re.findall(r"\d+", raw_mat)
         if digits:
-            d["matricula"] = str(int(digits[-1]))  # Limpiar ceros a la izquierda, ej: '0070' -> '70'
+            num_val = int(digits[-1])
+            d["matricula"] = str(num_val)  # Limpiar ceros a la izquierda, ej: '0070' -> '70'
+            # En esta flota: números >= 100 (serie 2000) son Tractos (TETR), números < 100 son Portas (GPCO)
+            if num_val >= 100:
+                d["tipo_pista"] = "TETR"
+            elif num_val > 0:
+                d["tipo_pista"] = "GPCO"
         else:
             d["matricula"] = raw_mat
 
-        # Detectar pista de tipo desde la matrícula (ej. 'PORTA 70', 'TRA-2178')
+        # Detectar pista explícita de tipo desde la matrícula (ej. 'PORTA 70', 'TRA-2178')
         up_mat = raw_mat.upper()
         if any(k in up_mat for k in ("PORTA", "POR", "GPCO", "REACH")):
             d["tipo_pista"] = "GPCO"
@@ -130,13 +136,12 @@ def extraer(fuente):
     d["vin"] = m.group(1).strip() if m else ""
     if d["vin"]:
         up_vin = d["vin"].upper()
-        if not d["tipo_pista"]:
-            if any(k in up_vin for k in ("TRACTO", "TRA", "TETR", "TERBERG")):
-                d["tipo_pista"] = "TETR"
-            elif any(k in up_vin for k in ("PORTA", "POR", "GPCO", "REACH")):
-                d["tipo_pista"] = "GPCO"
-            elif any(k in up_vin for k in ("CHASIS", "CHA")):
-                d["tipo_pista"] = "CHA"
+        if any(k in up_vin for k in ("TRACTO", "TRA", "TETR", "TERBERG")):
+            d["tipo_pista"] = "TETR"
+        elif any(k in up_vin for k in ("PORTA", "POR", "GPCO", "REACH")):
+            d["tipo_pista"] = "GPCO"
+        elif any(k in up_vin for k in ("CHASIS", "CHA")):
+            d["tipo_pista"] = "CHA"
         if not re.fullmatch(r"[A-HJ-NPR-Z0-9]{17}", d["vin"]):
             w.append(f"El campo VIN no contiene un VIN valido ('{d['vin']}')")
 
@@ -146,12 +151,11 @@ def extraer(fuente):
     m = RE_MODELO.search(texto)
     d["modelo"] = m.group(1).strip() if m else ""
 
-    if not d["tipo_pista"]:
-        fab_mod = f"{d['fabricante']} {d['modelo']}".upper()
-        if any(k in fab_mod for k in ("TERBERG", "YT220", "OTTAWA", "MAFI")):
-            d["tipo_pista"] = "TETR"
-        elif any(k in fab_mod for k in ("KALMAR", "KONECRANES", "FANTUZZI", "SMV", "DRG")):
-            d["tipo_pista"] = "GPCO"
+    fab_mod = f"{d['fabricante']} {d['modelo']}".upper()
+    if any(k in fab_mod for k in ("TERBERG", "YT", "YT50", "YT220", "KT2", "TT", "OTTAWA", "MAFI")):
+        d["tipo_pista"] = "TETR"
+    elif any(k in fab_mod for k in ("KONECRANES", "FANTUZZI", "SMV", "DRG", "DRF", "REACH", "STACKER")):
+        d["tipo_pista"] = "GPCO"
 
     # --- Limites ---
     m = RE_K_LIMITE.search(texto)

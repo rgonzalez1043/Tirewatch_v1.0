@@ -185,6 +185,13 @@ class ImportarPDFView(APIView):
                 }
 
             tipo_pista = datos.get("tipo_pista", "")
+            # Respaldo adicional por nombre de archivo (ej: 'TRA-2099_FALLIDO.pdf', 'PORTA-70.pdf')
+            up_nombre = nombre.upper()
+            if any(k in up_nombre for k in ("TRA-", "TRA_", "TRA ", "TRACTO", "TETR")):
+                tipo_pista = "TETR"
+            elif any(k in up_nombre for k in ("POR-", "POR_", "POR ", "PORTA", "GPCO")):
+                tipo_pista = "GPCO"
+
             equipo = self._resolver_equipo(datos.get("matricula"), datos.get("vin"), advertencias, tipo_pista=tipo_pista)
 
             # Límite configurable según tipo de equipo (Tractos vs Portas)
