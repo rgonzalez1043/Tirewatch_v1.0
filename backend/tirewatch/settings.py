@@ -20,7 +20,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get(
-    "DJANGO_ALLOWED_HOSTS", "192.168.38.14,localhost,127.0.0.1"
+    "DJANGO_ALLOWED_HOSTS", "192.168.38.14,localhost,127.0.0.1,testserver"
 ).split(",")
 
 # Orígenes de confianza para CSRF (necesario para el login web con DEBUG=False)

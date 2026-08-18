@@ -472,3 +472,52 @@ class CoberturaCampanaView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response(AnalizadorOpacidad.cobertura_campana(periodo))
+
+
+class ExportarExcelOpacidadView(APIView):
+    """
+    GET /api/opacidad/exportar-excel/?ano=2025&periodo=2026-S1&tipo=TETR
+    Genera y descarga un libro Excel (.xlsx) con resumen ejecutivo de auditoría,
+    histórico detallado de mediciones y estado actual de la flota.
+    """
+    from rest_framework.permissions import AllowAny
+    from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from django.http import HttpResponse
+        from django.utils import timezone
+        from .services.exportador_excel import generar_reporte_excel_opacidad
+
+        ano = request.query_params.get("ano")
+        periodo = request.query_params.get("periodo")
+        tipo_codigo = request.query_params.get("tipo")
+        
+        try:
+            ano = int(ano) if ano else None
+        except ValueError:
+            ano = None
+
+        bio = generar_reporte_excel_opacidad(
+            ano=ano,
+            periodo=periodo,
+            tipo_codigo=tipo_codigo,
+            usuario=request.user
+        )
+
+        sufijo = []
+        if ano: sufijo.append(f"{ano}")
+        if periodo: sufijo.append(f"{periodo}")
+        if tipo_codigo: sufijo.append(f"{tipo_codigo}")
+        sufijo_str = f"_{'_'.join(sufijo)}" if sufijo else "_Historico"
+        fecha_str = timezone.localdate().strftime("%Y%m%d")
+        filename = f"Informe_Opacidad_STI{sufijo_str}_{fecha_str}.xlsx"
+
+        response = HttpResponse(
+            bio.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response

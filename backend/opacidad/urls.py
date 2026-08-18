@@ -5,6 +5,7 @@ from .views import (
     OpacimetroViewSet, MedicionOpacidadViewSet, ProyeccionOpacidadViewSet,
     ImportacionOpacidadViewSet, ImportarPDFView,
     EjecutarAnalisisOpacidadView, CoberturaCampanaView,
+    ExportarExcelOpacidadView,
 )
 
 app_name = "opacidad"
@@ -20,4 +21,5 @@ urlpatterns = [
     path("importar/", ImportarPDFView.as_view(), name="importar_pdf"),
     path("analizar/", EjecutarAnalisisOpacidadView.as_view(), name="analizar_opacidad"),
     path("cobertura/", CoberturaCampanaView.as_view(), name="cobertura_campana"),
+    path("exportar-excel/", ExportarExcelOpacidadView.as_view(), name="exportar_excel"),
 ]
